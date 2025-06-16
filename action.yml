@@ -1,0 +1,123 @@
+---
+name: 'TRX to VS Playlist Converter'
+description: >
+  Convert TRX test result files to Visual Studio Test playlist files
+branding:
+  icon: 'play'
+  color: 'blue'
+
+inputs:
+  trx-file-path:
+    description: 'Path to the TRX file to convert'
+    required: true
+  output-path:
+    description: >
+      Path to the output playlist file (optional). If not specified, the
+      playlist will be saved in the same directory as the TRX file with the
+      same name but .playlist extension.
+    required: false
+  test-outcomes:
+    description: >
+      Test outcomes to include in the playlist (comma-separated). Accepts:
+      Passed, Failed, NotExecuted, Inconclusive, Timeout, Pending. Default: Failed
+    required: false
+    default: 'Failed'
+  artifact-name:
+    description: >
+      Name for the uploaded artifact. If not specified, will use the playlist
+      file name (without extension).
+    required: false
+
+outputs:
+  playlist-path:
+    description: 'Path to the generated playlist file'
+    value: ${{ steps.convert.outputs.playlist-path }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.x'
+
+    - name: Install trx-to-vsplaylist tool
+      shell: bash
+      run: |
+        echo "Installing trx-to-vsplaylist tool..."
+        dotnet tool install --global trx-to-vsplaylist --prerelease
+        echo "✅ trx-to-vsplaylist tool installed successfully"
+
+    - name: Convert TRX to Playlist
+      id: convert
+      shell: bash
+      run: |
+        # Parse inputs
+        TRX_FILE="${{ inputs.trx-file-path }}"
+        OUTPUT_PATH="${{ inputs.output-path }}"
+        OUTCOMES="${{ inputs.test-outcomes }}"
+
+        # Expand glob patterns and find the first TRX file
+        TRX_FILES=($(ls $TRX_FILE 2>/dev/null || echo "$TRX_FILE"))
+        if [ ${#TRX_FILES[@]} -eq 0 ] || [ ! -f "${TRX_FILES[0]}" ]; then
+          echo "Error: No TRX file found matching pattern: $TRX_FILE"
+          if [ "$TRX_FILE" != "${TRX_FILES[0]}" ]; then
+            echo "Expanded to: ${TRX_FILES[@]}"
+          fi
+          exit 1
+        fi
+
+        # Use the first matching TRX file
+        ACTUAL_TRX_FILE="${TRX_FILES[0]}"
+        echo "Using TRX file: $ACTUAL_TRX_FILE"
+
+        # Calculate final output path
+        if [ -n "$OUTPUT_PATH" ]; then
+          FINAL_OUTPUT="$OUTPUT_PATH"
+        else
+          # Calculate default output path based on actual TRX file
+          TRX_DIR=$(dirname "$ACTUAL_TRX_FILE")
+          TRX_NAME=$(basename "$ACTUAL_TRX_FILE" .trx)
+          FINAL_OUTPUT="$TRX_DIR/$TRX_NAME.playlist"
+        fi
+        
+        # Build command arguments array
+        ARGS=(convert "$ACTUAL_TRX_FILE")
+        
+        # Add output path if specified
+        if [ -n "$OUTPUT_PATH" ]; then
+          ARGS+=(--output "$OUTPUT_PATH")
+        fi
+        
+        # Add test outcomes if specified
+        if [ -n "$OUTCOMES" ]; then
+          # Split comma-separated values and add each as a separate --outcome parameter
+          IFS=',' read -ra OUTCOME_ARRAY <<< "$OUTCOMES"
+          for outcome in "${OUTCOME_ARRAY[@]}"; do
+            # Trim whitespace
+            outcome=$(echo "$outcome" | xargs)
+            ARGS+=(--outcome "$outcome")
+          done
+        fi
+        
+        echo "Running: trx-to-vsplaylist ${ARGS[@]}"
+        trx-to-vsplaylist "${ARGS[@]}"
+
+        # Verify the output file was created
+        if [ ! -f "$FINAL_OUTPUT" ]; then
+          echo "Error: Playlist file was not created at: $FINAL_OUTPUT"
+          exit 1
+        fi
+
+        echo "Successfully created playlist file: $FINAL_OUTPUT"
+        echo "playlist-path=$FINAL_OUTPUT" >> $GITHUB_OUTPUT
+        
+        # Generate artifact name from playlist file basename (without extension)
+        PLAYLIST_BASENAME=$(basename "$FINAL_OUTPUT" .playlist)
+        echo "artifact-basename=$PLAYLIST_BASENAME" >> $GITHUB_OUTPUT
+
+    - name: Upload Playlist Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name || steps.convert.outputs.artifact-basename }}
+        path: ${{ steps.convert.outputs.playlist-path }}
