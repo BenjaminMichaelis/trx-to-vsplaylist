@@ -57,67 +57,71 @@ runs:
         OUTPUT_PATH="${{ inputs.output-path }}"
         OUTCOMES="${{ inputs.test-outcomes }}"
 
-        # Expand glob patterns and find the first TRX file
+        # Expand glob patterns to all matching TRX files
         TRX_FILES=($(ls $TRX_FILE 2>/dev/null || echo "$TRX_FILE"))
-        if [ ${#TRX_FILES[@]} -eq 0 ] || [ ! -f "${TRX_FILES[0]}" ]; then
+        if [ ${#TRX_FILES[@]} -eq 0 ]; then
           echo "Error: No TRX file found matching pattern: $TRX_FILE"
-          if [ "$TRX_FILE" != "${TRX_FILES[0]}" ]; then
-            echo "Expanded to: ${TRX_FILES[@]}"
+          exit 1
+        fi
+
+        PLAYLIST_PATHS=()
+        ARTIFACT_BASENAMES=()
+
+        for ACTUAL_TRX_FILE in "${TRX_FILES[@]}"; do
+          if [ ! -f "$ACTUAL_TRX_FILE" ]; then
+            echo "Warning: $ACTUAL_TRX_FILE is not a file, skipping."
+            continue
           fi
-          exit 1
-        fi
+          echo "Using TRX file: $ACTUAL_TRX_FILE"
 
-        # Use the first matching TRX file
-        ACTUAL_TRX_FILE="${TRX_FILES[0]}"
-        echo "Using TRX file: $ACTUAL_TRX_FILE"
+          # Calculate output path for each file
+          if [ -n "$OUTPUT_PATH" ]; then
+            # If output path is specified and multiple files, append base name
+            if [ ${#TRX_FILES[@]} -gt 1 ]; then
+              TRX_BASENAME=$(basename "$ACTUAL_TRX_FILE" .trx)
+              EXT="${OUTPUT_PATH##*.}"
+              BASE="${OUTPUT_PATH%.*}"
+              FINAL_OUTPUT="${BASE}_$TRX_BASENAME.${EXT}"
+            else
+              FINAL_OUTPUT="$OUTPUT_PATH"
+            fi
+          else
+            TRX_DIR=$(dirname "$ACTUAL_TRX_FILE")
+            TRX_NAME=$(basename "$ACTUAL_TRX_FILE" .trx)
+            FINAL_OUTPUT="$TRX_DIR/$TRX_NAME.playlist"
+          fi
 
-        # Calculate final output path
-        if [ -n "$OUTPUT_PATH" ]; then
-          FINAL_OUTPUT="$OUTPUT_PATH"
-        else
-          # Calculate default output path based on actual TRX file
-          TRX_DIR=$(dirname "$ACTUAL_TRX_FILE")
-          TRX_NAME=$(basename "$ACTUAL_TRX_FILE" .trx)
-          FINAL_OUTPUT="$TRX_DIR/$TRX_NAME.playlist"
-        fi
-        
-        # Build command arguments array
-        ARGS=(convert "$ACTUAL_TRX_FILE")
-        
-        # Add output path if specified
-        if [ -n "$OUTPUT_PATH" ]; then
-          ARGS+=(--output "$OUTPUT_PATH")
-        fi
-        
-        # Add test outcomes if specified
-        if [ -n "$OUTCOMES" ]; then
-          # Split comma-separated values and add each as a separate --outcome parameter
-          IFS=',' read -ra OUTCOME_ARRAY <<< "$OUTCOMES"
-          for outcome in "${OUTCOME_ARRAY[@]}"; do
-            # Trim whitespace
-            outcome=$(echo "$outcome" | xargs)
-            ARGS+=(--outcome "$outcome")
-          done
-        fi
-        
-        echo "Running: trx-to-vsplaylist ${ARGS[@]}"
-        trx-to-vsplaylist "${ARGS[@]}"
+          # Build command arguments array
+          ARGS=(convert "$ACTUAL_TRX_FILE")
+          ARGS+=(--output "$FINAL_OUTPUT")
 
-        # Verify the output file was created
-        if [ ! -f "$FINAL_OUTPUT" ]; then
-          echo "Error: Playlist file was not created at: $FINAL_OUTPUT"
-          exit 1
-        fi
+          if [ -n "$OUTCOMES" ]; then
+            IFS=',' read -ra OUTCOME_ARRAY <<< "$OUTCOMES"
+            for outcome in "${OUTCOME_ARRAY[@]}"; do
+              outcome=$(echo "$outcome" | xargs)
+              ARGS+=(--outcome "$outcome")
+            done
+          fi
 
-        echo "Successfully created playlist file: $FINAL_OUTPUT"
-        echo "playlist-path=$FINAL_OUTPUT" >> $GITHUB_OUTPUT
-        
-        # Generate artifact name from playlist file basename (without extension)
-        PLAYLIST_BASENAME=$(basename "$FINAL_OUTPUT" .playlist)
-        echo "artifact-basename=$PLAYLIST_BASENAME" >> $GITHUB_OUTPUT
+          echo "Running: trx-to-vsplaylist ${ARGS[@]}"
+          trx-to-vsplaylist "${ARGS[@]}"
 
-    - name: Upload Playlist Artifact
+          if [ ! -f "$FINAL_OUTPUT" ]; then
+            echo "Error: Playlist file was not created at: $FINAL_OUTPUT"
+            exit 1
+          fi
+
+          echo "Successfully created playlist file: $FINAL_OUTPUT"
+          PLAYLIST_PATHS+=("$FINAL_OUTPUT")
+          ARTIFACT_BASENAMES+=("$(basename "$FINAL_OUTPUT" .playlist)")
+        done
+
+        # Output all playlist paths as a colon-separated list
+        echo "playlist-paths=${PLAYLIST_PATHS[*]}" | tr ' ' ':' >> $GITHUB_OUTPUT
+        echo "artifact-basenames=${ARTIFACT_BASENAMES[*]}" | tr ' ' ':' >> $GITHUB_OUTPUT
+
+    - name: Upload Playlist Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ inputs.artifact-name || steps.convert.outputs.artifact-basename }}
-        path: ${{ steps.convert.outputs.playlist-path }}
+        name: ${{ inputs.artifact-name || 'playlists' }}
+        path: ${{ steps.convert.outputs.playlist-paths }}

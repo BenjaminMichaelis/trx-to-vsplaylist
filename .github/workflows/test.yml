@@ -388,3 +388,71 @@ jobs:
             echo "❌ Action should have failed for missing TRX file"
             exit 1
           fi
+
+  test-multi-trx-glob:
+    runs-on: ubuntu-latest
+    needs: test-action
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create sample TRX files for glob test
+        run: |
+          mkdir -p TestResults
+          cat > TestResults/first.trx << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <TestRun id="1" name="First Test Run" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+            <Results>
+              <UnitTestResult executionId="execution-1" testId="test-1" testName="FirstTest" outcome="Failed" />
+            </Results>
+            <TestDefinitions>
+              <UnitTest name="FirstTest" id="test-1">
+                <TestMethod codeBase="TestAssembly.dll" className="TestClass" name="FirstTest" />
+              </UnitTest>
+            </TestDefinitions>
+          </TestRun>
+          EOF
+          cat > TestResults/second.trx << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <TestRun id="2" name="Second Test Run" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+            <Results>
+              <UnitTestResult executionId="execution-2" testId="test-2" testName="SecondTest" outcome="Failed" />
+            </Results>
+            <TestDefinitions>
+              <UnitTest name="SecondTest" id="test-2">
+                <TestMethod codeBase="TestAssembly.dll" className="TestClass" name="SecondTest" />
+              </UnitTest>
+            </TestDefinitions>
+          </TestRun>
+          EOF
+
+      - name: Test Action - Multi-file glob
+        uses: ./
+        with:
+          trx-file-path: './TestResults/*.trx'
+          test-outcomes: 'Failed'
+          artifact-name: 'test-playlist-multiglob'
+
+      - name: Verify all playlists created and not empty
+        run: |
+          for file in ./TestResults/first.playlist ./TestResults/second.playlist; do
+            if [ -f "$file" ]; then
+              echo "✅ $file created"
+              echo "Content:"
+              cat "$file"
+              if [ ! -s "$file" ]; then
+                echo "❌ $file is empty"
+                exit 1
+              fi
+            else
+              echo "❌ $file not found"
+              exit 1
+            fi
+          done
+          # Check for expected test names
+          if grep -q "FirstTest" ./TestResults/first.playlist && grep -q "SecondTest" ./TestResults/second.playlist; then
+            echo "✅ Both playlists contain expected test names"
+          else
+            echo "❌ One or both playlists missing expected test names"
+            exit 1
+          fi
