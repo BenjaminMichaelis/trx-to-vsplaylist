@@ -10,7 +10,7 @@ inputs:
   trx-file-path:
     description: 'Path to the TRX file to convert'
     required: true
-  output-path:
+  output-directory:
     description: >
       Directory to write the output playlist file(s) to (optional). If not specified, the
       playlist will be saved in the same directory as the TRX file with the
@@ -54,7 +54,7 @@ runs:
       run: |
         # Parse inputs
         TRX_FILE="${{ inputs.trx-file-path }}"
-        OUTPUT_PATH="${{ inputs.output-path }}"
+        OUTPUT_DIRECTORY="${{ inputs.output-directory }}"
         OUTCOMES="${{ inputs.test-outcomes }}"
 
         # Expand glob patterns to all matching TRX files
@@ -75,10 +75,10 @@ runs:
           echo "Using TRX file: $ACTUAL_TRX_FILE"
 
           # Calculate output path for each file
-          if [ -n "$OUTPUT_PATH" ]; then
-            mkdir -p "$OUTPUT_PATH"
+          if [ -n "$OUTPUT_DIRECTORY" ]; then
+            mkdir -p "$OUTPUT_DIRECTORY"
             TRX_BASENAME=$(basename "$ACTUAL_TRX_FILE" .trx)
-            FINAL_OUTPUT="$OUTPUT_PATH/$TRX_BASENAME.playlist"
+            FINAL_OUTPUT="$OUTPUT_DIRECTORY/$TRX_BASENAME.playlist"
           else
             TRX_DIR=$(dirname "$ACTUAL_TRX_FILE")
             TRX_NAME=$(basename "$ACTUAL_TRX_FILE" .trx)
