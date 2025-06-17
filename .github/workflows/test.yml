@@ -129,27 +129,27 @@ jobs:
             exit 1
           fi
 
-      - name: Test Action - Custom Output Path
+      - name: Test Action - Custom Output Directory
         uses: ./
         with:
           trx-file-path: './TestResults/sample.trx'
-          output-path: './custom-playlist.playlist'
+          output-directory: './custom-playlists'
           test-outcomes: 'Failed,Passed'
           artifact-name: 'test-playlist-custom'
 
       - name: Verify custom playlist file was created
         run: |
-          if [ -f "./custom-playlist.playlist" ]; then
+          if [ -f "./custom-playlists/sample.playlist" ]; then
             echo "✅ Custom playlist file created successfully"
             echo "Content:"
-            cat "./custom-playlist.playlist"
+            cat "./custom-playlists/sample.playlist"
             # Ensure playlist is not empty
-            if [ ! -s "./custom-playlist.playlist" ]; then
+            if [ ! -s "./custom-playlists/sample.playlist" ]; then
               echo "❌ Custom playlist file is empty"
               exit 1
             fi
             # Ensure playlist contains at least one test name (e.g., TestMethod1 or TestMethod2)
-            if grep -q "TestMethod" "./custom-playlist.playlist"; then
+            if grep -q "TestMethod" "./custom-playlists/sample.playlist"; then
               echo "✅ Custom playlist contains test names"
             else
               echo "❌ Custom playlist does not contain any test names"
@@ -165,18 +165,18 @@ jobs:
         uses: ./
         with:
           trx-file-path: './TestResults/comprehensive.trx'
-          output-path: './passed-only.playlist'
+          output-directory: './passed-only'
           test-outcomes: 'Passed'
           artifact-name: 'test-playlist-passed'
 
       - name: Verify passed-only playlist
         run: |
-          if [ -f "./passed-only.playlist" ]; then
+          if [ -f "./passed-only/comprehensive.playlist" ]; then
             echo "✅ Passed-only playlist created successfully"
             echo "Content:"
-            cat "./passed-only.playlist"
+            cat "./passed-only/comprehensive.playlist"
             # Should contain only PassedTest
-            if grep -q "PassedTest" "./passed-only.playlist"; then
+            if grep -q "PassedTest" "./passed-only/comprehensive.playlist"; then
               echo "✅ Contains expected PassedTest"
             else
               echo "❌ Missing expected PassedTest"
@@ -191,18 +191,18 @@ jobs:
         uses: ./
         with:
           trx-file-path: './TestResults/comprehensive.trx'
-          output-path: './notexecuted-only.playlist'
+          output-directory: './notexecuted-only'
           test-outcomes: 'NotExecuted'
           artifact-name: 'test-playlist-notexecuted'
 
       - name: Verify NotExecuted-only playlist
         run: |
-          if [ -f "./notexecuted-only.playlist" ]; then
+          if [ -f "./notexecuted-only/comprehensive.playlist" ]; then
             echo "✅ NotExecuted-only playlist created successfully"
             echo "Content:"
-            cat "./notexecuted-only.playlist"
+            cat "./notexecuted-only/comprehensive.playlist"
             # Should contain only NotExecutedTest
-            if grep -q "NotExecutedTest" "./notexecuted-only.playlist"; then
+            if grep -q "NotExecutedTest" "./notexecuted-only/comprehensive.playlist"; then
               echo "✅ Contains expected NotExecutedTest"
             else
               echo "❌ Missing expected NotExecutedTest"
@@ -217,18 +217,18 @@ jobs:
         uses: ./
         with:
           trx-file-path: './TestResults/comprehensive.trx'
-          output-path: './inconclusive-only.playlist'
+          output-directory: './inconclusive-only'
           test-outcomes: 'Inconclusive'
           artifact-name: 'test-playlist-inconclusive'
 
       - name: Verify Inconclusive-only playlist
         run: |
-          if [ -f "./inconclusive-only.playlist" ]; then
+          if [ -f "./inconclusive-only/comprehensive.playlist" ]; then
             echo "✅ Inconclusive-only playlist created successfully"
             echo "Content:"
-            cat "./inconclusive-only.playlist"
+            cat "./inconclusive-only/comprehensive.playlist"
             # Should contain only InconclusiveTest
-            if grep -q "InconclusiveTest" "./inconclusive-only.playlist"; then
+            if grep -q "InconclusiveTest" "./inconclusive-only/comprehensive.playlist"; then
               echo "✅ Contains expected InconclusiveTest"
             else
               echo "❌ Missing expected InconclusiveTest"
@@ -243,18 +243,18 @@ jobs:
         uses: ./
         with:
           trx-file-path: './TestResults/comprehensive.trx'
-          output-path: './timeout-only.playlist'
+          output-directory: './timeout-only'
           test-outcomes: 'Timeout'
           artifact-name: 'test-playlist-timeout'
 
       - name: Verify Timeout-only playlist
         run: |
-          if [ -f "./timeout-only.playlist" ]; then
+          if [ -f "./timeout-only/comprehensive.playlist" ]; then
             echo "✅ Timeout-only playlist created successfully"
             echo "Content:"
-            cat "./timeout-only.playlist"
+            cat "./timeout-only/comprehensive.playlist"
             # Should contain only TimeoutTest
-            if grep -q "TimeoutTest" "./timeout-only.playlist"; then
+            if grep -q "TimeoutTest" "./timeout-only/comprehensive.playlist"; then
               echo "✅ Contains expected TimeoutTest"
             else
               echo "❌ Missing expected TimeoutTest"
@@ -270,20 +270,20 @@ jobs:
         uses: ./
         with:
           trx-file-path: './TestResults/comprehensive.trx'
-          output-path: './all-outcomes.playlist'
+          output-directory: './all-outcomes'
           test-outcomes: 'Failed,Passed,NotExecuted,Inconclusive,Timeout'
           artifact-name: 'test-playlist-all'
 
       - name: Verify all-outcomes playlist
         run: |
-          if [ -f "./all-outcomes.playlist" ]; then
+          if [ -f "./all-outcomes/comprehensive.playlist" ]; then
             echo "✅ All-outcomes playlist created successfully"
             echo "Content:"
-            cat "./all-outcomes.playlist"
+            cat "./all-outcomes/comprehensive.playlist"
             # Should contain all test types
             TESTS=("FailedTest" "PassedTest" "NotExecutedTest" "InconclusiveTest" "TimeoutTest")
             for test in "${TESTS[@]}"; do
-              if grep -q "$test" "./all-outcomes.playlist"; then
+              if grep -q "$test" "./all-outcomes/comprehensive.playlist"; then
                 echo "✅ Contains expected $test"
               else
                 echo "❌ Missing expected $test"
@@ -300,20 +300,20 @@ jobs:
         uses: ./
         with:
           trx-file-path: './TestResults/comprehensive.trx'
-          output-path: './whitespace-test.playlist'
+          output-directory: './whitespace-test'
           test-outcomes: ' Failed , Passed , NotExecuted '
           artifact-name: 'test-playlist-whitespace'
 
       - name: Verify whitespace handling
         run: |
-          if [ -f "./whitespace-test.playlist" ]; then
+          if [ -f "./whitespace-test/comprehensive.playlist" ]; then
             echo "✅ Whitespace test playlist created successfully"
             echo "Content:"
-            cat "./whitespace-test.playlist"
+            cat "./whitespace-test/comprehensive.playlist"
             # Should contain Failed, Passed, and NotExecuted tests
             TESTS=("FailedTest" "PassedTest" "NotExecutedTest")
             for test in "${TESTS[@]}"; do
-              if grep -q "$test" "./whitespace-test.playlist"; then
+              if grep -q "$test" "./whitespace-test/comprehensive.playlist"; then
                 echo "✅ Contains expected $test"
               else
                 echo "❌ Missing expected $test"
@@ -330,22 +330,26 @@ jobs:
         uses: ./
         with:
           trx-file-path: './TestResults/*.trx'
-          output-path: './glob-test.playlist'
+          output-directory: './glob-playlists'
           test-outcomes: 'Failed'
           artifact-name: 'test-playlist-glob'
 
       - name: Verify glob pattern handling
         run: |
-          if [ -f "./glob-test.playlist" ]; then
-            echo "✅ Glob pattern test playlist created successfully"
-            echo "Content:"
-            cat "./glob-test.playlist"
-            # Should use the first matching TRX file (which could be any of them)
-            echo "✅ Glob pattern processed successfully"
-          else
-            echo "❌ Glob pattern test playlist file not found"
-            exit 1
-          fi
+          FILES=(glob-playlists/sample.playlist glob-playlists/additional.playlist glob-playlists/comprehensive.playlist)
+          for file in "${FILES[@]}"; do
+            if [ -f "$file" ]; then
+              echo "✅ $file created"
+              cat "$file"
+              if [ ! -s "$file" ]; then
+                echo "❌ $file is empty"
+                exit 1
+              fi
+            else
+              echo "❌ $file not found"
+              exit 1
+            fi
+          done
 
       # Test default artifact name behavior
       - name: Test Action - Default artifact name
@@ -386,5 +390,72 @@ jobs:
             echo "✅ Action correctly failed for missing TRX file"
           else
             echo "❌ Action should have failed for missing TRX file"
+            exit 1
+          fi
+
+  test-multi-trx-glob:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create sample TRX files for glob test
+        run: |
+          mkdir -p TestResults
+          cat > TestResults/first.trx << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <TestRun id="1" name="First Test Run" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+            <Results>
+              <UnitTestResult executionId="execution-1" testId="test-1" testName="FirstTest" outcome="Failed" />
+            </Results>
+            <TestDefinitions>
+              <UnitTest name="FirstTest" id="test-1">
+                <TestMethod codeBase="TestAssembly.dll" className="TestClass" name="FirstTest" />
+              </UnitTest>
+            </TestDefinitions>
+          </TestRun>
+          EOF
+          cat > TestResults/second.trx << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <TestRun id="2" name="Second Test Run" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+            <Results>
+              <UnitTestResult executionId="execution-2" testId="test-2" testName="SecondTest" outcome="Failed" />
+            </Results>
+            <TestDefinitions>
+              <UnitTest name="SecondTest" id="test-2">
+                <TestMethod codeBase="TestAssembly.dll" className="TestClass" name="SecondTest" />
+              </UnitTest>
+            </TestDefinitions>
+          </TestRun>
+          EOF
+
+      - name: Test Action - Multi-file glob
+        uses: ./
+        with:
+          trx-file-path: './TestResults/*.trx'
+          test-outcomes: 'Failed'
+          artifact-name: 'test-playlist-multiglob'
+
+      - name: Verify all playlists created and not empty
+        run: |
+          for file in ./TestResults/first.playlist ./TestResults/second.playlist; do
+            if [ -f "$file" ]; then
+              echo "✅ $file created"
+              echo "Content:"
+              cat "$file"
+              if [ ! -s "$file" ]; then
+                echo "❌ $file is empty"
+                exit 1
+              fi
+            else
+              echo "❌ $file not found"
+              exit 1
+            fi
+          done
+          # Check for expected test names
+          if grep -q "FirstTest" ./TestResults/first.playlist && grep -q "SecondTest" ./TestResults/second.playlist; then
+            echo "✅ Both playlists contain expected test names"
+          else
+            echo "❌ One or both playlists missing expected test names"
             exit 1
           fi
