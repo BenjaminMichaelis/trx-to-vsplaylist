@@ -12,7 +12,7 @@ inputs:
     required: true
   output-path:
     description: >
-      Path to the output playlist file (optional). If not specified, the
+      Directory to write the output playlist file(s) to (optional). If not specified, the
       playlist will be saved in the same directory as the TRX file with the
       same name but .playlist extension.
     required: false
@@ -76,15 +76,9 @@ runs:
 
           # Calculate output path for each file
           if [ -n "$OUTPUT_PATH" ]; then
-            # If output path is specified and multiple files, append base name
-            if [ ${#TRX_FILES[@]} -gt 1 ]; then
-              TRX_BASENAME=$(basename "$ACTUAL_TRX_FILE" .trx)
-              EXT="${OUTPUT_PATH##*.}"
-              BASE="${OUTPUT_PATH%.*}"
-              FINAL_OUTPUT="${BASE}_$TRX_BASENAME.${EXT}"
-            else
-              FINAL_OUTPUT="$OUTPUT_PATH"
-            fi
+            mkdir -p "$OUTPUT_PATH"
+            TRX_BASENAME=$(basename "$ACTUAL_TRX_FILE" .trx)
+            FINAL_OUTPUT="$OUTPUT_PATH/$TRX_BASENAME.playlist"
           else
             TRX_DIR=$(dirname "$ACTUAL_TRX_FILE")
             TRX_NAME=$(basename "$ACTUAL_TRX_FILE" .trx)

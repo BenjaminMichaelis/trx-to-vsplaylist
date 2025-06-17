@@ -133,23 +133,23 @@ jobs:
         uses: ./
         with:
           trx-file-path: './TestResults/sample.trx'
-          output-path: './custom-playlist.playlist'
+          output-path: './custom-playlists'
           test-outcomes: 'Failed,Passed'
           artifact-name: 'test-playlist-custom'
 
       - name: Verify custom playlist file was created
         run: |
-          if [ -f "./custom-playlist.playlist" ]; then
+          if [ -f "./custom-playlists/sample.playlist" ]; then
             echo "✅ Custom playlist file created successfully"
             echo "Content:"
-            cat "./custom-playlist.playlist"
+            cat "./custom-playlists/sample.playlist"
             # Ensure playlist is not empty
-            if [ ! -s "./custom-playlist.playlist" ]; then
+            if [ ! -s "./custom-playlists/sample.playlist" ]; then
               echo "❌ Custom playlist file is empty"
               exit 1
             fi
             # Ensure playlist contains at least one test name (e.g., TestMethod1 or TestMethod2)
-            if grep -q "TestMethod" "./custom-playlist.playlist"; then
+            if grep -q "TestMethod" "./custom-playlists/sample.playlist"; then
               echo "✅ Custom playlist contains test names"
             else
               echo "❌ Custom playlist does not contain any test names"
@@ -330,22 +330,26 @@ jobs:
         uses: ./
         with:
           trx-file-path: './TestResults/*.trx'
-          output-path: './glob-test.playlist'
+          output-path: './glob-playlists'
           test-outcomes: 'Failed'
           artifact-name: 'test-playlist-glob'
 
       - name: Verify glob pattern handling
         run: |
-          if [ -f "./glob-test.playlist" ]; then
-            echo "✅ Glob pattern test playlist created successfully"
-            echo "Content:"
-            cat "./glob-test.playlist"
-            # Should use the first matching TRX file (which could be any of them)
-            echo "✅ Glob pattern processed successfully"
-          else
-            echo "❌ Glob pattern test playlist file not found"
-            exit 1
-          fi
+          FILES=(glob-playlists/sample.playlist glob-playlists/additional.playlist glob-playlists/comprehensive.playlist)
+          for file in "${FILES[@]}"; do
+            if [ -f "$file" ]; then
+              echo "✅ $file created"
+              cat "$file"
+              if [ ! -s "$file" ]; then
+                echo "❌ $file is empty"
+                exit 1
+              fi
+            else
+              echo "❌ $file not found"
+              exit 1
+            fi
+          done
 
       # Test default artifact name behavior
       - name: Test Action - Default artifact name
