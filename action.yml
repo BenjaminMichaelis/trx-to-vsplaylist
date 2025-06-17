@@ -64,6 +64,14 @@ runs:
           exit 1
         fi
 
+        # Set artifact directory
+        if [ -n "$OUTPUT_DIRECTORY" ]; then
+          ARTIFACT_DIR="$OUTPUT_DIRECTORY"
+        else
+          ARTIFACT_DIR="$(dirname "${TRX_FILES[0]}")"
+        fi
+        mkdir -p "$ARTIFACT_DIR"
+
         PLAYLIST_PATHS=()
         ARTIFACT_BASENAMES=()
 
@@ -74,16 +82,8 @@ runs:
           fi
           echo "Using TRX file: $ACTUAL_TRX_FILE"
 
-          # Calculate output path for each file
-          if [ -n "$OUTPUT_DIRECTORY" ]; then
-            mkdir -p "$OUTPUT_DIRECTORY"
-            TRX_BASENAME=$(basename "$ACTUAL_TRX_FILE" .trx)
-            FINAL_OUTPUT="$OUTPUT_DIRECTORY/$TRX_BASENAME.playlist"
-          else
-            TRX_DIR=$(dirname "$ACTUAL_TRX_FILE")
-            TRX_NAME=$(basename "$ACTUAL_TRX_FILE" .trx)
-            FINAL_OUTPUT="$TRX_DIR/$TRX_NAME.playlist"
-          fi
+          TRX_BASENAME=$(basename "$ACTUAL_TRX_FILE" .trx)
+          FINAL_OUTPUT="$ARTIFACT_DIR/$TRX_BASENAME.playlist"
 
           # Build command arguments array
           ARGS=(convert "$ACTUAL_TRX_FILE")
@@ -113,9 +113,11 @@ runs:
         # Output all playlist paths as a colon-separated list
         echo "playlist-paths=${PLAYLIST_PATHS[*]}" | tr ' ' ':' >> $GITHUB_OUTPUT
         echo "artifact-basenames=${ARTIFACT_BASENAMES[*]}" | tr ' ' ':' >> $GITHUB_OUTPUT
+        echo "artifact-dir=$ARTIFACT_DIR" >> $GITHUB_OUTPUT
 
     - name: Upload Playlist Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.artifact-name || 'playlists' }}
-        path: ${{ inputs.output-directory || '.' }}/*.playlist
+        path: ${{ steps.convert.outputs.artifact-dir }}/*.playlist
+        if-no-files-found: 'error'
