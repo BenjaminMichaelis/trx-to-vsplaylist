@@ -118,4 +118,4 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.artifact-name || 'playlists' }}
-        path: ${{ steps.convert.outputs.playlist-paths }}
+        path: ${{ inputs.output-directory || '.' }}/*.playlist
