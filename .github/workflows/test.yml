@@ -112,6 +112,18 @@ jobs:
             echo "✅ Playlist file created successfully"
             echo "Content:"
             cat "./TestResults/sample.playlist"
+            # Ensure playlist is not empty
+            if [ ! -s "./TestResults/sample.playlist" ]; then
+              echo "❌ Playlist file is empty"
+              exit 1
+            fi
+            # Ensure playlist contains at least one test name (e.g., TestMethod1 or TestMethod2)
+            if grep -q "TestMethod" "./TestResults/sample.playlist"; then
+              echo "✅ Playlist contains test names"
+            else
+              echo "❌ Playlist does not contain any test names"
+              exit 1
+            fi
           else
             echo "❌ Playlist file not found"
             exit 1
@@ -131,6 +143,18 @@ jobs:
             echo "✅ Custom playlist file created successfully"
             echo "Content:"
             cat "./custom-playlist.playlist"
+            # Ensure playlist is not empty
+            if [ ! -s "./custom-playlist.playlist" ]; then
+              echo "❌ Custom playlist file is empty"
+              exit 1
+            fi
+            # Ensure playlist contains at least one test name (e.g., TestMethod1 or TestMethod2)
+            if grep -q "TestMethod" "./custom-playlist.playlist"; then
+              echo "✅ Custom playlist contains test names"
+            else
+              echo "❌ Custom playlist does not contain any test names"
+              exit 1
+            fi
           else
             echo "❌ Custom playlist file not found"
             exit 1
