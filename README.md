@@ -26,7 +26,7 @@ A GitHub Action that converts [TRX (Visual Studio Test Results)](https://learn.m
   uses: BenjaminMichaelis/trx-to-vsplaylist@v1
   with:
     trx-file-path: './TestResults/results.trx'
-    output-path: './artifacts/failed-tests.playlist'
+    output-directory: './artifacts'
     test-outcomes: 'Failed,NotExecuted'
 ```
 
@@ -60,16 +60,15 @@ jobs:
         trx-file-path: './TestResults/*.trx'
         test-outcomes: 'Failed'
     
-    # The playlist file will be automatically uploaded as an artifact
-    # with an auto-generated name and can be downloaded from the Actions tab
+    # The playlist file will be automatically uploaded as an artifact named either by the specified `artifact-name` or as `playlists`
 ```
 
 ## Inputs
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
-| `trx-file-path` | Path to the TRX file to convert | Yes | - |
-| `output-path` | Path to the output playlist file. If not specified, saves in the same directory as the TRX file with .playlist extension | No | - |
+| `trx-file-path` | Path to the TRX file to convert (supports glob patterns for multiple files) | Yes | - |
+| `output-directory` | Directory to write the output playlist file(s) to. If not specified, saves in the same directory as the TRX file with .playlist extension | No | - |
 | `test-outcomes` | Test outcomes to include in the playlist (comma-separated). Accepts: Passed, Failed, NotExecuted, Inconclusive, Timeout | No | `Failed` |
 | `artifact-name` | Name for the uploaded artifact. If not specified, will use the playlist file name (without extension) | No | playlist file name |
 
