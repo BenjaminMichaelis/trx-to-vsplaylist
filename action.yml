@@ -80,12 +80,14 @@ runs:
 
         PLAYLIST_PATHS=()
         ARTIFACT_BASENAMES=()
+        PROCESSED_TRX_COUNT=0
 
         for ACTUAL_TRX_FILE in "${TRX_FILES[@]}"; do
           if [ ! -f "$ACTUAL_TRX_FILE" ]; then
             echo "Warning: $ACTUAL_TRX_FILE is not a file, skipping."
             continue
           fi
+          PROCESSED_TRX_COUNT=$((PROCESSED_TRX_COUNT+1))
           echo "Using TRX file: $ACTUAL_TRX_FILE"
 
           TRX_BASENAME=$(basename "$ACTUAL_TRX_FILE" .trx)
@@ -124,6 +126,11 @@ runs:
           PLAYLIST_PATHS+=("$FINAL_OUTPUT")
           ARTIFACT_BASENAMES+=("$(basename "$FINAL_OUTPUT" .playlist)")
         done
+
+        if [ "$PROCESSED_TRX_COUNT" -eq 0 ]; then
+          echo "Error: No valid TRX files were found to process."
+          exit 1
+        fi
 
         # Output all playlist paths as a colon-separated list
         echo "playlist-paths=${PLAYLIST_PATHS[*]}" | tr ' ' ':' >> $GITHUB_OUTPUT
