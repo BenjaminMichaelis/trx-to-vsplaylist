@@ -1,0 +1,68 @@
+name: Update trx-to-vsplaylist version
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # every night at 2am UTC
+  workflow_dispatch:
+
+jobs:
+  update-tool-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get latest trx-to-vsplaylist version from NuGet
+        id: get_version
+        shell: pwsh
+        run: |
+          $packageInfo = Invoke-RestMethod -Uri "https://api.nuget.org/v3/registration5-gz-semver2/trx-to-vsplaylist/index.json"
+          $allVersions = $packageInfo.items[0].items | Where-Object { -not $_.catalogEntry.version.Contains('-') }
+          $latest = $allVersions | Sort-Object { [version]$_.catalogEntry.version } | Select-Object -Last 1
+          $latestVersion = $latest.catalogEntry.version
+          Write-Host "Latest NuGet package version: $latestVersion"
+          echo "latest=$latestVersion" >> $env:GITHUB_OUTPUT
+
+      - name: Get current version from action.yml
+        id: get_current
+        run: |
+          CURRENT=$(grep -oP 'dotnet tool install --global trx-to-vsplaylist --version \K[0-9.]+(?=)' action.yml | head -1)
+          echo "Current version: $CURRENT"
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+
+      - name: Check if update is needed
+        id: check
+        run: |
+          if [ "${{ steps.get_version.outputs.latest }}" = "${{ steps.get_current.outputs.current }}" ]; then
+            echo "No update needed."
+            echo "update=false" >> $GITHUB_OUTPUT
+          else
+            echo "Update needed."
+            echo "update=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update action.yml with new version
+        if: steps.check.outputs.update == 'true'
+        run: |
+          sed -i "s/dotnet tool install --global trx-to-vsplaylist --version [0-9.][0-9.]*/dotnet tool install --global trx-to-vsplaylist --version ${{ steps.get_version.outputs.latest }}/g" action.yml
+
+      - name: Commit and push changes
+        if: steps.check.outputs.update == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b update-trx-to-vsplaylist-${{ steps.get_version.outputs.latest }}
+          git add action.yml
+          git commit -m "chore: bump trx-to-vsplaylist to ${{ steps.get_version.outputs.latest }}"
+          git push origin update-trx-to-vsplaylist-${{ steps.get_version.outputs.latest }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Pull Request
+        if: steps.check.outputs.update == 'true'
+        run: |
+          gh pr create -B ${{ github.event.repository.default_branch }} -H update-trx-to-vsplaylist-${{ steps.get_version.outputs.latest }} \
+            --title "chore: bump trx-to-vsplaylist to ${{ steps.get_version.outputs.latest }}" \
+            --body "Automated PR to update trx-to-vsplaylist tool version in action.yml to ${{ steps.get_version.outputs.latest }}."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
