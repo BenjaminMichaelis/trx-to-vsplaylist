@@ -135,4 +135,4 @@ runs:
       with:
         name: ${{ inputs.artifact-name || 'playlists' }}
         path: ${{ steps.convert.outputs.artifact-dir }}/*.playlist
-        if-no-files-found: 'error'
+        if-no-files-found: 'warn'
