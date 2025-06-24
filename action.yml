@@ -111,8 +111,13 @@ runs:
           trx-to-vsplaylist "${ARGS[@]}"
 
           if [ ! -f "$FINAL_OUTPUT" ]; then
-            echo "Error: Playlist file was not created at: $FINAL_OUTPUT"
-            exit 1
+            if [ "$SKIP_EMPTY" = "false" ]; then
+              echo "Error: Playlist file was not created at: $FINAL_OUTPUT"
+              exit 1
+            else
+              echo "Info: Playlist file was not created at: $FINAL_OUTPUT (likely due to --skip-empty and no matching tests)"
+              continue
+            fi
           fi
 
           echo "Successfully created playlist file: $FINAL_OUTPUT"
