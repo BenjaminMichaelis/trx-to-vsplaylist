@@ -28,6 +28,7 @@ A GitHub Action that converts [TRX (Visual Studio Test Results)](https://learn.m
     trx-file-path: './TestResults/results.trx'
     output-directory: './artifacts'
     test-outcomes: 'Failed,NotExecuted'
+    skip-empty: false # disables skipping empty playlists
 ```
 
 ### Complete Workflow Example
@@ -71,6 +72,7 @@ jobs:
 | `output-directory` | Directory to write the output playlist file(s) to. If not specified, saves in the same directory as the TRX file with .playlist extension | No | - |
 | `test-outcomes` | Test outcomes to include in the playlist (comma-separated). Accepts: Passed, Failed, NotExecuted, Inconclusive, Timeout | No | `Failed` |
 | `artifact-name` | Name for the uploaded artifact. If not specified, will use the playlist file name (without extension) | No | playlist file name |
+| `skip-empty` | Skip writing out empty playlist files. If true, empty playlists will not be created. | No | `true` |
 
 ## Outputs
 

@@ -27,6 +27,11 @@ inputs:
       Name for the uploaded artifact. If not specified, will use the playlist
       file name (without extension).
     required: false
+  skip-empty:
+    description: >
+      Skip writing out empty playlist files. If true, empty playlists will not be created. Default: true
+    required: false
+    default: 'true'
 
 outputs:
   playlist-path:
@@ -56,6 +61,7 @@ runs:
         TRX_FILE="${{ inputs.trx-file-path }}"
         OUTPUT_DIRECTORY="${{ inputs.output-directory }}"
         OUTCOMES="${{ inputs.test-outcomes }}"
+        SKIP_EMPTY="${{ inputs.skip-empty }}"
 
         # Expand glob patterns to all matching TRX files
         TRX_FILES=($(ls $TRX_FILE 2>/dev/null || echo "$TRX_FILE"))
@@ -88,6 +94,10 @@ runs:
           # Build command arguments array
           ARGS=(convert "$ACTUAL_TRX_FILE")
           ARGS+=(--output "$FINAL_OUTPUT")
+
+          if [ "$SKIP_EMPTY" != "false" ]; then
+            ARGS+=(--skip-empty)
+          fi
 
           if [ -n "$OUTCOMES" ]; then
             IFS=',' read -ra OUTCOME_ARRAY <<< "$OUTCOMES"
