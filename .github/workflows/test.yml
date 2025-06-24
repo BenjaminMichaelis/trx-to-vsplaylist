@@ -370,6 +370,25 @@ jobs:
             exit 1
           fi
 
+      # Test skip-empty: should NOT create a playlist file if no tests match
+      - name: Test Action - skip-empty prevents empty playlist
+        uses: ./
+        with:
+          trx-file-path: './TestResults/comprehensive.trx'
+          output-directory: './skip-empty-test'
+          test-outcomes: 'Pending' # No test in the TRX has this outcome
+          skip-empty: true
+          artifact-name: 'test-playlist-skipempty'
+
+      - name: Verify skip-empty prevents empty playlist
+        run: |
+          if [ -f "./skip-empty-test/comprehensive.playlist" ]; then
+            echo "❌ Playlist file should NOT have been created when skip-empty is true and no tests match."
+            exit 1
+          else
+            echo "✅ No playlist file created as expected with skip-empty enabled and no matching tests."
+          fi
+
   test-error-conditions:
     runs-on: ubuntu-latest
     steps:
@@ -386,6 +405,7 @@ jobs:
 
       - name: Verify missing TRX file error handling
         run: |
+          echo "status: ${{ steps.missing-trx-test.outcome }}"
           if [ "${{ steps.missing-trx-test.outcome }}" = "failure" ]; then
             echo "✅ Action correctly failed for missing TRX file"
           else
