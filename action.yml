@@ -50,7 +50,7 @@ runs:
       shell: bash
       run: |
         echo "Installing trx-to-vsplaylist tool..."
-        dotnet tool install --global trx-to-vsplaylist
+        dotnet tool install --global trx-to-vsplaylist --version 1.1.0
         echo "✅ trx-to-vsplaylist tool installed successfully"
 
     - name: Convert TRX to Playlist
