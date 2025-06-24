@@ -405,6 +405,7 @@ jobs:
 
       - name: Verify missing TRX file error handling
         run: |
+          echo "status: ${{ steps.missing-trx-test.outcome }}"
           if [ "${{ steps.missing-trx-test.outcome }}" = "failure" ]; then
             echo "✅ Action correctly failed for missing TRX file"
           else
