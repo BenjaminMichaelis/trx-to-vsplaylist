@@ -187,6 +187,7 @@ runs:
 
         # Output all playlist paths as a colon-separated list
         echo "playlist-paths=${PLAYLIST_PATHS[*]}" | tr ' ' ':' >> $GITHUB_OUTPUT
+        echo "playlist-path=${PLAYLIST_PATHS[0]}" >> $GITHUB_OUTPUT  # For backward compatibility, output the first/main playlist
         echo "artifact-basenames=${ARTIFACT_BASENAMES[*]}" | tr ' ' ':' >> $GITHUB_OUTPUT
         echo "artifact-dir=$ARTIFACT_DIR" >> $GITHUB_OUTPUT
 
