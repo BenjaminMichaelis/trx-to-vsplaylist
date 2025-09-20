@@ -480,9 +480,149 @@ jobs:
             exit 1
           fi
 
+  test-combine-playlists:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create sample TRX files with overlapping tests
+        run: |
+          mkdir -p TestResults
+          
+          # Create first TRX file
+          cat > TestResults/tfm1.trx << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <TestRun id="1" name="TFM1 Test Run" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+            <Results>
+              <UnitTestResult executionId="execution-1" testId="test-1" testName="SharedFailedTest" outcome="Failed" />
+              <UnitTestResult executionId="execution-2" testId="test-2" testName="TFM1SpecificTest" outcome="Failed" />
+            </Results>
+            <TestDefinitions>
+              <UnitTest name="SharedFailedTest" id="test-1">
+                <TestMethod codeBase="TestAssembly.dll" className="TestClass" name="SharedFailedTest" />
+              </UnitTest>
+              <UnitTest name="TFM1SpecificTest" id="test-2">
+                <TestMethod codeBase="TestAssembly.dll" className="TestClass" name="TFM1SpecificTest" />
+              </UnitTest>
+            </TestDefinitions>
+          </TestRun>
+          EOF
+          
+          # Create second TRX file with overlapping test
+          cat > TestResults/tfm2.trx << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <TestRun id="2" name="TFM2 Test Run" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+            <Results>
+              <UnitTestResult executionId="execution-1" testId="test-1" testName="SharedFailedTest" outcome="Failed" />
+              <UnitTestResult executionId="execution-3" testId="test-3" testName="TFM2SpecificTest" outcome="Failed" />
+            </Results>
+            <TestDefinitions>
+              <UnitTest name="SharedFailedTest" id="test-1">
+                <TestMethod codeBase="TestAssembly.dll" className="TestClass" name="SharedFailedTest" />
+              </UnitTest>
+              <UnitTest name="TFM2SpecificTest" id="test-3">
+                <TestMethod codeBase="TestAssembly.dll" className="TestClass" name="TFM2SpecificTest" />
+              </UnitTest>
+            </TestDefinitions>
+          </TestRun>
+          EOF
+
+      - name: Test Action - Combine playlists with de-duplication
+        uses: ./
+        with:
+          trx-file-path: './TestResults/tfm*.trx'
+          output-directory: './combined-playlists'
+          test-outcomes: 'Failed'
+          combine-playlists: true
+          artifact-name: 'test-playlist-combined'
+
+      - name: Verify combined playlist was created with de-duplication
+        run: |
+          if [ -f "./combined-playlists/combined.playlist" ]; then
+            echo "✅ Combined playlist created successfully"
+            echo "Content:"
+            cat "./combined-playlists/combined.playlist"
+            
+            # Verify all unique tests are present
+            EXPECTED_TESTS=("SharedFailedTest" "TFM1SpecificTest" "TFM2SpecificTest")
+            for test in "${EXPECTED_TESTS[@]}"; do
+              if grep -q "$test" "./combined-playlists/combined.playlist"; then
+                echo "✅ Contains expected $test"
+              else
+                echo "❌ Missing expected $test"
+                exit 1
+              fi
+            done
+            
+            # Verify de-duplication: SharedFailedTest should appear only once
+            SHARED_COUNT=$(grep -c "SharedFailedTest" "./combined-playlists/combined.playlist" || echo "0")
+            if [ "$SHARED_COUNT" -eq 1 ]; then
+              echo "✅ SharedFailedTest correctly de-duplicated (appears once)"
+            else
+              echo "❌ SharedFailedTest appears $SHARED_COUNT times, expected 1"
+              exit 1
+            fi
+            
+            # Verify total test count is 3 (not 4 with duplicates)
+            TOTAL_TESTS=$(grep -c '<Add Test=' "./combined-playlists/combined.playlist" || echo "0")
+            if [ "$TOTAL_TESTS" -eq 3 ]; then
+              echo "✅ Combined playlist has correct number of unique tests: $TOTAL_TESTS"
+            else
+              echo "❌ Combined playlist has $TOTAL_TESTS tests, expected 3"
+              exit 1
+            fi
+            
+            # Verify individual playlists were NOT created when combine is enabled
+            if [ ! -f "./combined-playlists/tfm1.playlist" ] && [ ! -f "./combined-playlists/tfm2.playlist" ]; then
+              echo "✅ Individual playlists correctly not created when combine-playlists is true"
+            else
+              echo "❌ Individual playlists should not be created when combine-playlists is true"
+              exit 1
+            fi
+          else
+            echo "❌ Combined playlist file not found"
+            exit 1
+          fi
+
+      - name: Test Action - Combine disabled (default behavior)
+        uses: ./
+        with:
+          trx-file-path: './TestResults/tfm*.trx'
+          output-directory: './separate-playlists'
+          test-outcomes: 'Failed'
+          combine-playlists: false
+          artifact-name: 'test-playlist-separate'
+
+      - name: Verify separate playlists when combine is disabled
+        run: |
+          # Should create individual playlists
+          for file in ./separate-playlists/tfm1.playlist ./separate-playlists/tfm2.playlist; do
+            if [ -f "$file" ]; then
+              echo "✅ $file created"
+              echo "Content:"
+              cat "$file"
+              if [ ! -s "$file" ]; then
+                echo "❌ $file is empty"
+                exit 1
+              fi
+            else
+              echo "❌ $file not found"
+              exit 1
+            fi
+          done
+          
+          # Should NOT create combined playlist
+          if [ ! -f "./separate-playlists/combined.playlist" ]; then
+            echo "✅ Combined playlist correctly not created when combine-playlists is false"
+          else
+            echo "❌ Combined playlist should not be created when combine-playlists is false"
+            exit 1
+          fi
+
   validate-artifacts:
     runs-on: ubuntu-latest
-    needs: [test-action, test-multi-trx-glob]
+    needs: [test-action, test-multi-trx-glob, test-combine-playlists]
     steps:
       - name: Download all playlist artifacts
         uses: actions/download-artifact@v4

@@ -32,6 +32,12 @@ inputs:
       Skip writing out empty playlist files. If true, empty playlists will not be created. Default: true
     required: false
     default: 'true'
+  combine-playlists:
+    description: >
+      Combine multiple playlists into a single playlist file with de-duplication. 
+      When enabled, all individual playlists are merged into one 'combined.playlist' file. Default: false
+    required: false
+    default: 'false'
 
 outputs:
   playlist-path:
@@ -62,6 +68,7 @@ runs:
         OUTPUT_DIRECTORY="${{ inputs.output-directory }}"
         OUTCOMES="${{ inputs.test-outcomes }}"
         SKIP_EMPTY="${{ inputs.skip-empty }}"
+        COMBINE_PLAYLISTS="${{ inputs.combine-playlists }}"
 
         # Expand glob patterns to all matching TRX files
         TRX_FILES=($(ls $TRX_FILE 2>/dev/null || echo "$TRX_FILE"))
@@ -130,6 +137,52 @@ runs:
         if [ "$PROCESSED_TRX_COUNT" -eq 0 ]; then
           echo "Error: No valid TRX files were found to process."
           exit 1
+        fi
+
+        # Combine playlists if requested
+        if [ "$COMBINE_PLAYLISTS" = "true" ] && [ ${#PLAYLIST_PATHS[@]} -gt 0 ]; then
+          echo "Combining ${#PLAYLIST_PATHS[@]} playlists into a single combined playlist..."
+          COMBINED_PLAYLIST="$ARTIFACT_DIR/combined.playlist"
+          
+          # Start with playlist header
+          echo '<?xml version="1.0" encoding="utf-8"?>' > "$COMBINED_PLAYLIST"
+          echo '<Playlist Version="1.0">' >> "$COMBINED_PLAYLIST"
+          
+          # Create a temporary file to collect all unique test names
+          TEMP_TESTS="/tmp/unique_tests.txt"
+          > "$TEMP_TESTS"
+          
+          # Extract test names from all playlists and collect unique ones
+          for playlist in "${PLAYLIST_PATHS[@]}"; do
+            if [ -f "$playlist" ]; then
+              # Extract test names from <Add Test="..." /> lines, handling potential BOM and different formats
+              grep -o 'Test="[^"]*"' "$playlist" | sed 's/Test="//;s/"//' >> "$TEMP_TESTS"
+            fi
+          done
+          
+          # Sort and de-duplicate test names
+          sort -u "$TEMP_TESTS" > "$TEMP_TESTS.sorted"
+          
+          # Add each unique test to the combined playlist
+          while IFS= read -r test_name; do
+            if [ -n "$test_name" ]; then
+              echo "  <Add Test=\"$test_name\" />" >> "$COMBINED_PLAYLIST"
+            fi
+          done < "$TEMP_TESTS.sorted"
+          
+          # Close playlist
+          echo '</Playlist>' >> "$COMBINED_PLAYLIST"
+          
+          # Clean up temp files
+          rm -f "$TEMP_TESTS" "$TEMP_TESTS.sorted"
+          
+          # Count tests in combined playlist
+          TEST_COUNT=$(grep -c '<Add Test=' "$COMBINED_PLAYLIST" || echo "0")
+          echo "Successfully created combined playlist with $TEST_COUNT unique tests: $COMBINED_PLAYLIST"
+          
+          # Update outputs for combined playlist
+          PLAYLIST_PATHS=("$COMBINED_PLAYLIST")
+          ARTIFACT_BASENAMES=("combined")
         fi
 
         # Output all playlist paths as a colon-separated list
