@@ -6,6 +6,23 @@ on:
   workflow_dispatch:
 
 jobs:
+    # For GitHub Auto Merge to work it must be enabled on the repo.
+  # This can be done with the script here:
+  # https://github.com/BenjaminMichaelis/DotnetTemplates/blob/main/SetupRepo.ps1
+  # See documentation here:
+  # https://docs.github.com/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/automatically-merging-a-pull-request
+  automerge:
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+      contents: write
+
+    steps:
+      - uses: fastify/github-action-merge-dependabot@v3.11.2
+        with:
+            use-github-auto-merge: true
+
   update-tool-version:
     runs-on: ubuntu-latest
     steps:
