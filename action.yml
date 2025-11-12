@@ -168,7 +168,7 @@ runs:
         echo "artifact-dir=$ARTIFACT_DIR" >> $GITHUB_OUTPUT
 
     - name: Upload Playlist Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: ${{ inputs.artifact-name || 'test-playlists' }}
         path: ${{ steps.convert.outputs.artifact-dir }}/*.playlist
