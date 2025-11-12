@@ -2,7 +2,6 @@
 name: 'TRX to VS Playlist Converter'
 description: >
   Convert TRX test result files to Visual Studio Test playlist files. 
-  Supports globbing patterns, merging multiple TRX files, and creating separate playlists.
 branding:
   icon: 'play'
   color: 'blue'
@@ -61,12 +60,13 @@ runs:
       uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '10.x'
+        dotnet-quality: 'ga'
 
     - name: Install trx-to-vsplaylist tool
       shell: bash
       run: |
         echo "Installing trx-to-vsplaylist tool..."
-        dotnet tool install --global trx-to-vsplaylist --version 1.2.0
+        dotnet tool install --global trx-to-vsplaylist --version 1.2.1
         echo "✅ trx-to-vsplaylist tool installed successfully"
 
     - name: Convert TRX to Playlist
@@ -170,6 +170,6 @@ runs:
     - name: Upload Playlist Artifacts
       uses: actions/upload-artifact@v5
       with:
-        name: ${{ inputs.artifact-name || 'test-playlists' }}
+        name: ${{ inputs.artifact-name || format('test-results_{0}.playlist', github.run_id) }}
         path: ${{ steps.convert.outputs.artifact-dir }}/*.playlist
         if-no-files-found: 'warn'
