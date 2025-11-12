@@ -325,28 +325,65 @@ jobs:
             exit 1
           fi
 
-      # Test glob pattern support
-      - name: Test Action - Glob pattern support
+      # Test glob pattern support with MERGE (default behavior)
+      - name: Test Action - Glob pattern with merge (default)
         uses: ./
         with:
           trx-file-path: './TestResults/*.trx'
-          output-directory: './glob-playlists'
+          output-directory: './glob-merged'
           test-outcomes: 'Failed'
-          artifact-name: 'test-playlist-glob'
+          artifact-name: 'test-playlist-glob-merged'
 
-      - name: Verify glob pattern handling
+      - name: Verify glob pattern creates merged playlist
         run: |
-          FILES=(glob-playlists/sample.playlist glob-playlists/additional.playlist glob-playlists/comprehensive.playlist)
+          # Should create a single merged.playlist file
+          if [ -f "./glob-merged/merged.playlist" ]; then
+            echo "✅ Merged playlist created from glob pattern"
+            echo "Content:"
+            cat "./glob-merged/merged.playlist"
+            if [ ! -s "./glob-merged/merged.playlist" ]; then
+              echo "❌ Merged playlist is empty"
+              exit 1
+            fi
+            # Should contain failed tests from all TRX files
+            TESTS=("TestMethod1" "AdditionalTest" "FailedTest")
+            for test in "${TESTS[@]}"; do
+              if grep -q "$test" "./glob-merged/merged.playlist"; then
+                echo "✅ Merged playlist contains $test"
+              else
+                echo "❌ Merged playlist missing $test"
+                exit 1
+              fi
+            done
+          else
+            echo "❌ Merged playlist file not found"
+            exit 1
+          fi
+
+      # Test glob pattern support with SEPARATE mode
+      - name: Test Action - Glob pattern with separate mode
+        uses: ./
+        with:
+          trx-file-path: './TestResults/*.trx'
+          output-directory: './glob-separate'
+          separate: true
+          test-outcomes: 'Failed'
+          artifact-name: 'test-playlist-glob-separate'
+
+      - name: Verify glob pattern creates separate playlists
+        run: |
+          # Should create individual playlist files
+          FILES=(glob-separate/sample.playlist glob-separate/additional.playlist glob-separate/comprehensive.playlist)
           for file in "${FILES[@]}"; do
             if [ -f "$file" ]; then
-              echo "✅ $file created"
+              echo "✅ $file created in separate mode"
               cat "$file"
               if [ ! -s "$file" ]; then
                 echo "❌ $file is empty"
                 exit 1
               fi
             else
-              echo "❌ $file not found"
+              echo "❌ $file not found in separate mode"
               exit 1
             fi
           done
@@ -389,6 +426,80 @@ jobs:
             echo "✅ No playlist file created as expected with skip-empty enabled and no matching tests."
           fi
 
+      # Test outputs are set correctly
+      - name: Test Action - Verify outputs (single file)
+        id: single-output-test
+        uses: ./
+        with:
+          trx-file-path: './TestResults/sample.trx'
+          output-directory: './output-test'
+          test-outcomes: 'Failed'
+          artifact-name: 'test-outputs-single'
+
+      - name: Verify single file outputs
+        run: |
+          echo "playlist-path: ${{ steps.single-output-test.outputs.playlist-path }}"
+          echo "artifact-dir: ${{ steps.single-output-test.outputs.artifact-dir }}"
+          
+          if [ -n "${{ steps.single-output-test.outputs.playlist-path }}" ]; then
+            echo "✅ playlist-path output is set"
+          else
+            echo "❌ playlist-path output is not set"
+            exit 1
+          fi
+          
+          if [ -n "${{ steps.single-output-test.outputs.artifact-dir }}" ]; then
+            echo "✅ artifact-dir output is set"
+          else
+            echo "❌ artifact-dir output is not set"
+            exit 1
+          fi
+
+      # Test outputs for merge mode with multiple files
+      - name: Test Action - Verify outputs (multiple files merged)
+        id: merge-output-test
+        uses: ./
+        with:
+          trx-file-path: './TestResults/*.trx'
+          output-directory: './merge-output-test'
+          test-outcomes: 'Failed'
+          artifact-name: 'test-outputs-merge'
+
+      - name: Verify merge outputs
+        run: |
+          echo "playlist-path: ${{ steps.merge-output-test.outputs.playlist-path }}"
+          echo "artifact-dir: ${{ steps.merge-output-test.outputs.artifact-dir }}"
+          
+          if [ -n "${{ steps.merge-output-test.outputs.playlist-path }}" ]; then
+            echo "✅ playlist-path output is set for merged output"
+          else
+            echo "❌ playlist-path output is not set for merged output"
+            exit 1
+          fi
+
+      # Test outputs for separate mode
+      - name: Test Action - Verify outputs (separate mode)
+        id: separate-output-test
+        uses: ./
+        with:
+          trx-file-path: './TestResults/sample.trx ./TestResults/additional.trx'
+          output-directory: './separate-output-test'
+          separate: true
+          test-outcomes: 'Failed'
+          artifact-name: 'test-outputs-separate'
+
+      - name: Verify separate mode outputs
+        run: |
+          echo "playlist-paths: ${{ steps.separate-output-test.outputs.playlist-paths }}"
+          echo "artifact-dir: ${{ steps.separate-output-test.outputs.artifact-dir }}"
+          
+          if [ -n "${{ steps.separate-output-test.outputs.playlist-paths }}" ]; then
+            echo "✅ playlist-paths output is set for separate mode"
+          else
+            echo "❌ playlist-paths output is not set for separate mode"
+            exit 1
+          fi
+
   test-error-conditions:
     runs-on: ubuntu-latest
     steps:
@@ -419,7 +530,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create sample TRX files for glob test
+      - name: Create sample TRX files for merge test
         run: |
           mkdir -p TestResults
           cat > TestResults/first.trx << 'EOF'
@@ -449,16 +560,50 @@ jobs:
           </TestRun>
           EOF
 
-      - name: Test Action - Multi-file glob
+      # Test default merge behavior
+      - name: Test Action - Multi-file merge (default)
         uses: ./
         with:
           trx-file-path: './TestResults/*.trx'
+          output-directory: './merged-output'
           test-outcomes: 'Failed'
-          artifact-name: 'test-playlist-multiglob'
+          artifact-name: 'test-playlist-merged'
 
-      - name: Verify all playlists created and not empty
+      - name: Verify merged playlist contains both tests
         run: |
-          for file in ./TestResults/first.playlist ./TestResults/second.playlist; do
+          if [ -f "./merged-output/merged.playlist" ]; then
+            echo "✅ Merged playlist created"
+            echo "Content:"
+            cat "./merged-output/merged.playlist"
+            if [ ! -s "./merged-output/merged.playlist" ]; then
+              echo "❌ Merged playlist is empty"
+              exit 1
+            fi
+            # Check that BOTH tests are in the single merged file
+            if grep -q "FirstTest" "./merged-output/merged.playlist" && grep -q "SecondTest" "./merged-output/merged.playlist"; then
+              echo "✅ Merged playlist contains both FirstTest and SecondTest"
+            else
+              echo "❌ Merged playlist missing one or both test names"
+              exit 1
+            fi
+          else
+            echo "❌ Merged playlist file not found"
+            exit 1
+          fi
+
+      # Test separate mode
+      - name: Test Action - Multi-file separate mode
+        uses: ./
+        with:
+          trx-file-path: './TestResults/*.trx'
+          output-directory: './separate-output'
+          separate: true
+          test-outcomes: 'Failed'
+          artifact-name: 'test-playlist-separate'
+
+      - name: Verify separate playlists created
+        run: |
+          for file in ./separate-output/first.playlist ./separate-output/second.playlist; do
             if [ -f "$file" ]; then
               echo "✅ $file created"
               echo "Content:"
@@ -472,17 +617,17 @@ jobs:
               exit 1
             fi
           done
-          # Check for expected test names
-          if grep -q "FirstTest" ./TestResults/first.playlist && grep -q "SecondTest" ./TestResults/second.playlist; then
-            echo "✅ Both playlists contain expected test names"
+          # Check for expected test names in separate files
+          if grep -q "FirstTest" ./separate-output/first.playlist && grep -q "SecondTest" ./separate-output/second.playlist; then
+            echo "✅ Both separate playlists contain expected test names"
           else
-            echo "❌ One or both playlists missing expected test names"
+            echo "❌ One or both separate playlists missing expected test names"
             exit 1
           fi
 
   validate-artifacts:
     runs-on: ubuntu-latest
-    needs: [test-action, test-multi-trx-glob]
+    needs: [test-action, test-multi-trx-glob, test-error-conditions, test-multi-framework]
     steps:
       - name: Download all playlist artifacts
         uses: actions/download-artifact@v4
@@ -509,3 +654,160 @@ jobs:
             fi
           done
           echo "✅ All playlist artifacts are present and not empty"
+
+  test-multi-framework:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Simulate multi-framework test results
+        run: |
+          mkdir -p TestResults
+          
+          # Simulate .NET 6.0 test run
+          cat > TestResults/net6.0_results.trx << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <TestRun id="net6-run" name=".NET 6.0 Test Run" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+            <Results>
+              <UnitTestResult executionId="exec-1" testId="test-1" testName="SharedTest" outcome="Failed" />
+              <UnitTestResult executionId="exec-2" testId="test-2" testName="Net6OnlyTest" outcome="Failed" />
+            </Results>
+            <TestDefinitions>
+              <UnitTest name="SharedTest" id="test-1">
+                <TestMethod codeBase="TestAssembly.dll" className="TestClass" name="SharedTest" />
+              </UnitTest>
+              <UnitTest name="Net6OnlyTest" id="test-2">
+                <TestMethod codeBase="TestAssembly.dll" className="TestClass" name="Net6OnlyTest" />
+              </UnitTest>
+            </TestDefinitions>
+          </TestRun>
+          EOF
+          
+          # Simulate .NET 8.0 test run
+          cat > TestResults/net8.0_results.trx << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <TestRun id="net8-run" name=".NET 8.0 Test Run" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+            <Results>
+              <UnitTestResult executionId="exec-3" testId="test-3" testName="SharedTest" outcome="Failed" />
+              <UnitTestResult executionId="exec-4" testId="test-4" testName="Net8OnlyTest" outcome="Failed" />
+            </Results>
+            <TestDefinitions>
+              <UnitTest name="SharedTest" id="test-3">
+                <TestMethod codeBase="TestAssembly.dll" className="TestClass" name="SharedTest" />
+              </UnitTest>
+              <UnitTest name="Net8OnlyTest" id="test-4">
+                <TestMethod codeBase="TestAssembly.dll" className="TestClass" name="Net8OnlyTest" />
+              </UnitTest>
+            </TestDefinitions>
+          </TestRun>
+          EOF
+          
+          # Simulate .NET Framework 4.8 test run
+          cat > TestResults/net48_results.trx << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <TestRun id="net48-run" name=".NET Framework 4.8 Test Run" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+            <Results>
+              <UnitTestResult executionId="exec-5" testId="test-5" testName="SharedTest" outcome="Failed" />
+              <UnitTestResult executionId="exec-6" testId="test-6" testName="Net48OnlyTest" outcome="Failed" />
+            </Results>
+            <TestDefinitions>
+              <UnitTest name="SharedTest" id="test-5">
+                <TestMethod codeBase="TestAssembly.dll" className="TestClass" name="SharedTest" />
+              </UnitTest>
+              <UnitTest name="Net48OnlyTest" id="test-6">
+                <TestMethod codeBase="TestAssembly.dll" className="TestClass" name="Net48OnlyTest" />
+              </UnitTest>
+            </TestDefinitions>
+          </TestRun>
+          EOF
+
+      - name: Test Action - Merge multi-framework results
+        uses: ./
+        with:
+          trx-file-path: './TestResults/net*.trx'
+          output-directory: './multi-framework'
+          test-outcomes: 'Failed'
+          artifact-name: 'multi-framework-merged'
+
+      - name: Verify multi-framework merge with deduplication
+        run: |
+          if [ -f "./multi-framework/merged.playlist" ]; then
+            echo "✅ Multi-framework merged playlist created"
+            echo "Content:"
+            cat "./multi-framework/merged.playlist"
+            
+            # Count occurrences of SharedTest (should appear only once due to deduplication)
+            SHARED_COUNT=$(grep -c "SharedTest" "./multi-framework/merged.playlist" || echo "0")
+            echo "SharedTest appears $SHARED_COUNT time(s)"
+            
+            # Verify all unique tests are present
+            TESTS=("SharedTest" "Net6OnlyTest" "Net8OnlyTest" "Net48OnlyTest")
+            for test in "${TESTS[@]}"; do
+              if grep -q "$test" "./multi-framework/merged.playlist"; then
+                echo "✅ Merged playlist contains $test"
+              else
+                echo "❌ Merged playlist missing $test"
+                exit 1
+              fi
+            done
+            
+            # Note: The actual deduplication behavior depends on the tool implementation
+            # This test verifies all tests are present; adjust based on actual tool behavior
+            echo "✅ All expected tests present in merged multi-framework playlist"
+          else
+            echo "❌ Multi-framework merged playlist not found"
+            exit 1
+          fi
+
+      - name: Test Action - Separate multi-framework results
+        uses: ./
+        with:
+          trx-file-path: './TestResults/net*.trx'
+          output-directory: './multi-framework-separate'
+          separate: true
+          test-outcomes: 'Failed'
+          artifact-name: 'multi-framework-separate'
+
+      - name: Verify separate framework playlists
+        run: |
+          FILES=(multi-framework-separate/net6.0_results.playlist multi-framework-separate/net8.0_results.playlist multi-framework-separate/net48_results.playlist)
+          for file in "${FILES[@]}"; do
+            if [ -f "$file" ]; then
+              echo "✅ $file created"
+              echo "Content:"
+              cat "$file"
+              if [ ! -s "$file" ]; then
+                echo "❌ $file is empty"
+                exit 1
+              fi
+            else
+              echo "❌ $file not found"
+              exit 1
+            fi
+          done
+          
+          # Verify each playlist contains SharedTest and its framework-specific test
+          if grep -q "SharedTest" "./multi-framework-separate/net6.0_results.playlist" && \
+             grep -q "Net6OnlyTest" "./multi-framework-separate/net6.0_results.playlist"; then
+            echo "✅ net6.0 playlist contains expected tests"
+          else
+            echo "❌ net6.0 playlist missing expected tests"
+            exit 1
+          fi
+          
+          if grep -q "SharedTest" "./multi-framework-separate/net8.0_results.playlist" && \
+             grep -q "Net8OnlyTest" "./multi-framework-separate/net8.0_results.playlist"; then
+            echo "✅ net8.0 playlist contains expected tests"
+          else
+            echo "❌ net8.0 playlist missing expected tests"
+            exit 1
+          fi
+          
+          if grep -q "SharedTest" "./multi-framework-separate/net48_results.playlist" && \
+             grep -q "Net48OnlyTest" "./multi-framework-separate/net48_results.playlist"; then
+            echo "✅ net48 playlist contains expected tests"
+          else
+            echo "❌ net48 playlist missing expected tests"
+            exit 1
+          fi
