@@ -25,6 +25,11 @@ jobs:
 
   update-tool-version:
     runs-on: ubuntu-latest
+    
+    permissions:
+      pull-requests: write
+      contents: write
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -63,7 +68,7 @@ jobs:
         run: |
           sed -i "s/dotnet tool install --global trx-to-vsplaylist --version [0-9.][0-9.]*/dotnet tool install --global trx-to-vsplaylist --version ${{ steps.get_version.outputs.latest }}/g" action.yml
 
-      - name: Commit and push changes
+      - name: Create Pull Request with changes
         if: steps.check.outputs.update == 'true'
         run: |
           git config user.name "github-actions[bot]"
@@ -71,15 +76,8 @@ jobs:
           git checkout -b update-trx-to-vsplaylist-${{ steps.get_version.outputs.latest }}
           git add action.yml
           git commit -m "chore: bump trx-to-vsplaylist to ${{ steps.get_version.outputs.latest }}"
-          git push origin update-trx-to-vsplaylist-${{ steps.get_version.outputs.latest }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create Pull Request
-        if: steps.check.outputs.update == 'true'
-        run: |
           gh pr create -B ${{ github.event.repository.default_branch }} -H update-trx-to-vsplaylist-${{ steps.get_version.outputs.latest }} \
             --title "chore: bump trx-to-vsplaylist to ${{ steps.get_version.outputs.latest }}" \
-            --body "Automated PR to update trx-to-vsplaylist tool version in action.yml to ${{ steps.get_version.outputs.latest }}."
+            --body "Automated PR to update trx-to-vsplaylist tool version in action.yml to ${{ steps.get_version.outputs.latest }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
