@@ -74,7 +74,7 @@ jobs:
           BRANCH_NAME="update-trx-to-vsplaylist-${{ steps.get_version.outputs.latest }}"
           
           # Check if PR already exists for this version
-          EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number' || echo "")
+          EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --limit 1 --json number --jq '.[0].number' || echo "")
           
           if [ -n "$EXISTING_PR" ]; then
             echo "PR #$EXISTING_PR already exists for version ${{ steps.get_version.outputs.latest }}"
@@ -85,9 +85,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Delete branch if it exists locally or remotely
-          git branch -D "$BRANCH_NAME" 2>/dev/null || true
-          git push origin --delete "$BRANCH_NAME" 2>/dev/null || true
+          # Clean up any existing branch (local or remote) to ensure a fresh start
+          echo "Cleaning up any existing branch: $BRANCH_NAME"
+          git branch -D "$BRANCH_NAME" 2>/dev/null && echo "  Deleted local branch" || echo "  No local branch to delete"
+          git push origin --delete "$BRANCH_NAME" 2>/dev/null && echo "  Deleted remote branch" || echo "  No remote branch to delete"
           
           git checkout -b "$BRANCH_NAME"
           git add action.yml
