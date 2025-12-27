@@ -71,12 +71,34 @@ jobs:
       - name: Create Pull Request with changes
         if: steps.check.outputs.update == 'true'
         run: |
+          BRANCH_NAME="update-trx-to-vsplaylist-${{ steps.get_version.outputs.latest }}"
+          
+          # Check if PR already exists for this version
+          EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --limit 1 --json number --jq '.[0].number // empty')
+          
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR #$EXISTING_PR already exists for version ${{ steps.get_version.outputs.latest }}"
+            echo "No action needed - the update PR is already open"
+            exit 0
+          fi
+          
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b update-trx-to-vsplaylist-${{ steps.get_version.outputs.latest }}
+          
+          # Clean up any existing branch (local or remote) to ensure a fresh start
+          echo "Cleaning up any existing branch: $BRANCH_NAME"
+          git branch -D "$BRANCH_NAME" 2>/dev/null && echo "  Deleted local branch" || echo "  No local branch to delete"
+          if git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
+            git push origin --delete "$BRANCH_NAME"
+            echo "  Deleted remote branch"
+          else
+            echo "  No remote branch to delete"
+          fi
+          
+          git checkout -b "$BRANCH_NAME"
           git add action.yml
           git commit -m "chore: bump trx-to-vsplaylist to ${{ steps.get_version.outputs.latest }}"
-          gh pr create -B ${{ github.event.repository.default_branch }} -H update-trx-to-vsplaylist-${{ steps.get_version.outputs.latest }} \
+          gh pr create -B ${{ github.event.repository.default_branch }} -H "$BRANCH_NAME" \
             --title "chore: bump trx-to-vsplaylist to ${{ steps.get_version.outputs.latest }}" \
             --body "Automated PR to update trx-to-vsplaylist tool version in action.yml to ${{ steps.get_version.outputs.latest }}"
         env:
