@@ -630,7 +630,7 @@ jobs:
     needs: [test-action, test-multi-trx-glob, test-error-conditions, test-multi-framework]
     steps:
       - name: Download all playlist artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           path: ./downloaded-artifacts
 
