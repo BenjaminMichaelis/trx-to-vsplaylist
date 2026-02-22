@@ -1,0 +1,175 @@
+---
+name: 'TRX to VS Playlist Converter (composite)'
+description: >
+  Convert TRX test result files to Visual Studio Test playlist files using the composite implementation.
+branding:
+  icon: 'play'
+  color: 'blue'
+
+inputs:
+  trx-file-path:
+    description: >
+      Path or glob pattern to the TRX file(s) to convert. Supports wildcards like *.trx or **/TestResults/*.trx.
+      Multiple TRX files will be merged into a single playlist by default unless separate is true.
+    required: true
+  output-directory:
+    description: >
+      Directory to write the output playlist file(s) to (optional). If not specified, the
+      playlist will be saved in the same directory as the TRX file with the
+      same name but .playlist extension.
+    required: false
+  test-outcomes:
+    description: >
+      Test outcomes to include in the playlist (comma-separated). Accepts:
+      Passed, Failed, NotExecuted, Inconclusive, Timeout, Pending. Default: Failed
+    required: false
+    default: 'Failed'
+  artifact-name:
+    description: >
+      Name for the uploaded artifact. If not specified, will use the playlist
+      file name (without extension).
+    required: false
+  skip-empty:
+    description: >
+      Skip writing out empty playlist files. If true, empty playlists will not be created. Default: true
+    required: false
+    default: 'true'
+  separate:
+    description: >
+      When multiple TRX files are found, create separate playlist files for each instead of merging into one.
+      If output-directory is not specified, playlists will be created in the same directory as the source TRX files.
+      Default: false (merge into single playlist)
+    required: false
+    default: 'false'
+
+outputs:
+  playlist-path:
+    description: 'Path to the generated playlist file (when using merge mode with single output)'
+    value: ${{ steps.convert.outputs.playlist-path }}
+  playlist-paths:
+    description: 'Colon-separated list of paths to generated playlist files (when using separate mode or multiple outputs)'
+    value: ${{ steps.convert.outputs.playlist-paths }}
+  artifact-dir:
+    description: 'Directory containing the generated playlist file(s)'
+    value: ${{ steps.convert.outputs.artifact-dir }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: '10.x'
+        dotnet-quality: 'ga'
+
+    - name: Install trx-to-vsplaylist tool
+      shell: bash
+      run: |
+        echo "Installing trx-to-vsplaylist tool..."
+        dotnet tool install --global trx-to-vsplaylist --version 1.3.0 --source https://api.nuget.org/v3/index.json
+        echo "✅ trx-to-vsplaylist tool installed successfully"
+
+    - name: Convert TRX to Playlist
+      id: convert
+      shell: bash
+      run: |
+        # Parse inputs
+        TRX_PATTERN="${{ inputs.trx-file-path }}"
+        OUTPUT_DIRECTORY="${{ inputs.output-directory }}"
+        OUTCOMES="${{ inputs.test-outcomes }}"
+        SKIP_EMPTY="${{ inputs.skip-empty }}"
+        SEPARATE="${{ inputs.separate }}"
+
+        # Expand glob patterns to all matching TRX files
+        TRX_FILES=($(ls $TRX_PATTERN 2>/dev/null || echo))
+        if [ ${#TRX_FILES[@]} -eq 0 ] || [ -z "${TRX_FILES[0]}" ]; then
+          echo "Error: No TRX files found matching pattern: $TRX_PATTERN"
+          exit 1
+        fi
+
+        echo "Found ${#TRX_FILES[@]} TRX file(s): ${TRX_FILES[*]}"
+
+        # Set artifact directory and output file
+        if [ -n "$OUTPUT_DIRECTORY" ]; then
+          ARTIFACT_DIR="$OUTPUT_DIRECTORY"
+          mkdir -p "$ARTIFACT_DIR"
+        else
+          ARTIFACT_DIR="$(dirname "${TRX_FILES[0]}")"
+        fi
+
+        # Build command arguments array
+        ARGS=(convert "${TRX_FILES[@]}")
+
+        # Add output option
+        if [ "$SEPARATE" = "true" ]; then
+          # For separate mode, output must be a directory
+          ARGS+=(--output "$ARTIFACT_DIR")
+          ARGS+=(--separate)
+          echo "Using separate mode: creating individual playlists in $ARTIFACT_DIR"
+        else
+          # For merge mode, determine output file name
+          TRX_BASENAME=$(basename "${TRX_FILES[0]}" .trx)
+          if [ ${#TRX_FILES[@]} -gt 1 ]; then
+            OUTPUT_FILE="$ARTIFACT_DIR/merged.playlist"
+          else
+            OUTPUT_FILE="$ARTIFACT_DIR/$TRX_BASENAME.playlist"
+          fi
+          ARGS+=(--output "$OUTPUT_FILE")
+          echo "Using merge mode: creating combined playlist at $OUTPUT_FILE"
+        fi
+
+        # Add skip-empty option
+        if [ "$SKIP_EMPTY" != "false" ]; then
+          ARGS+=(--skip-empty)
+        fi
+
+        # Add outcome filters
+        if [ -n "$OUTCOMES" ]; then
+          IFS=',' read -ra OUTCOME_ARRAY <<< "$OUTCOMES"
+          for outcome in "${OUTCOME_ARRAY[@]}"; do
+            outcome=$(echo "$outcome" | xargs)
+            ARGS+=(--outcome "$outcome")
+          done
+        fi
+
+        echo "Running: trx-to-vsplaylist ${ARGS[@]}"
+        trx-to-vsplaylist "${ARGS[@]}"
+
+        # Set outputs based on mode
+        if [ "$SEPARATE" = "true" ]; then
+          # In separate mode, find all created playlist files
+          PLAYLIST_FILES=($(find "$ARTIFACT_DIR" -name "*.playlist" -type f))
+          if [ ${#PLAYLIST_FILES[@]} -eq 0 ]; then
+            if [ "$SKIP_EMPTY" = "false" ]; then
+              echo "Error: No playlist files were created"
+              exit 1
+            else
+              echo "Info: No playlist files were created (likely due to --skip-empty and no matching tests)"
+            fi
+          else
+            echo "Successfully created ${#PLAYLIST_FILES[@]} playlist file(s)"
+          fi
+          echo "playlist-paths=${PLAYLIST_FILES[*]}" | tr ' ' ':' >> $GITHUB_OUTPUT
+        else
+          # In merge mode, check for single output file
+          if [ -f "$OUTPUT_FILE" ]; then
+            echo "Successfully created playlist file: $OUTPUT_FILE"
+            echo "playlist-path=$OUTPUT_FILE" >> $GITHUB_OUTPUT
+          else
+            if [ "$SKIP_EMPTY" = "false" ]; then
+              echo "Error: Playlist file was not created at: $OUTPUT_FILE"
+              exit 1
+            else
+              echo "Info: Playlist file was not created (likely due to --skip-empty and no matching tests)"
+            fi
+          fi
+        fi
+
+        echo "artifact-dir=$ARTIFACT_DIR" >> $GITHUB_OUTPUT
+
+    - name: Upload Playlist Artifacts
+      uses: actions/upload-artifact@v6
+      with:
+        name: ${{ inputs.artifact-name || format('test-results_{0}.playlist', github.run_id) }}
+        path: ${{ steps.convert.outputs.artifact-dir }}/*.playlist
+        if-no-files-found: 'warn'
