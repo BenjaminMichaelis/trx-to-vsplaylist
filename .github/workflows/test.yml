@@ -100,8 +100,8 @@ jobs:
           </TestRun>
           EOF
 
-      - name: Test Action - Basic Usage
-        uses: ./
+      - name: Test Action - Basic Usage (composite)
+        uses: ./composite
         with:
           trx-file-path: './TestResults/sample.trx'
           artifact-name: 'test-playlist-basic'
@@ -129,8 +129,8 @@ jobs:
             exit 1
           fi
 
-      - name: Test Action - Custom Output Directory
-        uses: ./
+      - name: Test Action - Custom Output Directory (composite)
+        uses: ./composite
         with:
           trx-file-path: './TestResults/sample.trx'
           output-directory: './custom-playlists'
@@ -161,8 +161,8 @@ jobs:
           fi
 
       # Test individual test outcomes
-      - name: Test Action - Passed outcomes only
-        uses: ./
+      - name: Test Action - Passed outcomes only (composite)
+        uses: ./composite
         with:
           trx-file-path: './TestResults/comprehensive.trx'
           output-directory: './passed-only'
@@ -187,8 +187,8 @@ jobs:
             exit 1
           fi
 
-      - name: Test Action - NotExecuted outcomes only
-        uses: ./
+      - name: Test Action - NotExecuted outcomes only (composite)
+        uses: ./composite
         with:
           trx-file-path: './TestResults/comprehensive.trx'
           output-directory: './notexecuted-only'
@@ -213,8 +213,8 @@ jobs:
             exit 1
           fi
 
-      - name: Test Action - Inconclusive outcomes only
-        uses: ./
+      - name: Test Action - Inconclusive outcomes only (composite)
+        uses: ./composite
         with:
           trx-file-path: './TestResults/comprehensive.trx'
           output-directory: './inconclusive-only'
@@ -239,8 +239,8 @@ jobs:
             exit 1
           fi
 
-      - name: Test Action - Timeout outcomes only
-        uses: ./
+      - name: Test Action - Timeout outcomes only (composite)
+        uses: ./composite
         with:
           trx-file-path: './TestResults/comprehensive.trx'
           output-directory: './timeout-only'
@@ -266,8 +266,8 @@ jobs:
           fi
 
       # Test all outcomes combined
-      - name: Test Action - All outcomes combined
-        uses: ./
+      - name: Test Action - All outcomes combined (composite)
+        uses: ./composite
         with:
           trx-file-path: './TestResults/comprehensive.trx'
           output-directory: './all-outcomes'
@@ -296,8 +296,8 @@ jobs:
           fi
 
       # Test whitespace handling in test-outcomes
-      - name: Test Action - Whitespace in test-outcomes
-        uses: ./
+      - name: Test Action - Whitespace in test-outcomes (composite)
+        uses: ./composite
         with:
           trx-file-path: './TestResults/comprehensive.trx'
           output-directory: './whitespace-test'
@@ -326,8 +326,8 @@ jobs:
           fi
 
       # Test glob pattern support with MERGE (default behavior)
-      - name: Test Action - Glob pattern with merge (default)
-        uses: ./
+      - name: Test Action - Glob pattern with merge (default, composite)
+        uses: ./composite
         with:
           trx-file-path: './TestResults/*.trx'
           output-directory: './glob-merged'
@@ -361,8 +361,8 @@ jobs:
           fi
 
       # Test glob pattern support with SEPARATE mode
-      - name: Test Action - Glob pattern with separate mode
-        uses: ./
+      - name: Test Action - Glob pattern with separate mode (composite)
+        uses: ./composite
         with:
           trx-file-path: './TestResults/*.trx'
           output-directory: './glob-separate'
@@ -389,8 +389,8 @@ jobs:
           done
 
       # Test default artifact name behavior
-      - name: Test Action - Default artifact name
-        uses: ./
+      - name: Test Action - Default artifact name (composite)
+        uses: ./composite
         with:
           trx-file-path: './TestResults/comprehensive.trx'
           test-outcomes: 'Failed'
@@ -408,8 +408,8 @@ jobs:
           fi
 
       # Test skip-empty: should NOT create a playlist file if no tests match
-      - name: Test Action - skip-empty prevents empty playlist
-        uses: ./
+      - name: Test Action - skip-empty prevents empty playlist (composite)
+        uses: ./composite
         with:
           trx-file-path: './TestResults/comprehensive.trx'
           output-directory: './skip-empty-test'
@@ -427,9 +427,9 @@ jobs:
           fi
 
       # Test outputs are set correctly
-      - name: Test Action - Verify outputs (single file)
+      - name: Test Action - Verify outputs (single file, composite)
         id: single-output-test
-        uses: ./
+        uses: ./composite
         with:
           trx-file-path: './TestResults/sample.trx'
           output-directory: './output-test'
@@ -456,9 +456,9 @@ jobs:
           fi
 
       # Test outputs for merge mode with multiple files
-      - name: Test Action - Verify outputs (multiple files merged)
+      - name: Test Action - Verify outputs (multiple files merged, composite)
         id: merge-output-test
-        uses: ./
+        uses: ./composite
         with:
           trx-file-path: './TestResults/*.trx'
           output-directory: './merge-output-test'
@@ -478,9 +478,9 @@ jobs:
           fi
 
       # Test outputs for separate mode
-      - name: Test Action - Verify outputs (separate mode)
+      - name: Test Action - Verify outputs (separate mode, composite)
         id: separate-output-test
-        uses: ./
+        uses: ./composite
         with:
           trx-file-path: './TestResults/sample.trx ./TestResults/additional.trx'
           output-directory: './separate-output-test'
@@ -506,9 +506,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Test Action - Missing TRX file (should fail)
+      - name: Test Action - Missing TRX file (should fail, composite)
         id: missing-trx-test
-        uses: ./
+        uses: ./composite
         continue-on-error: true
         with:
           trx-file-path: './NonExistent/missing.trx'
@@ -561,8 +561,8 @@ jobs:
           EOF
 
       # Test default merge behavior
-      - name: Test Action - Multi-file merge (default)
-        uses: ./
+      - name: Test Action - Multi-file merge (default, composite)
+        uses: ./composite
         with:
           trx-file-path: './TestResults/*.trx'
           output-directory: './merged-output'
@@ -592,8 +592,8 @@ jobs:
           fi
 
       # Test separate mode
-      - name: Test Action - Multi-file separate mode
-        uses: ./
+      - name: Test Action - Multi-file separate mode (composite)
+        uses: ./composite
         with:
           trx-file-path: './TestResults/*.trx'
           output-directory: './separate-output'
@@ -661,6 +661,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Build JS action
+        run: |
+          cd js
+          npm install
+          npm run build
+
       - name: Simulate multi-framework test results
         run: |
           mkdir -p TestResults
@@ -722,7 +728,7 @@ jobs:
           </TestRun>
           EOF
 
-      - name: Test Action - Merge multi-framework results
+      - name: Test Action - Merge multi-framework results (JS default)
         uses: ./
         with:
           trx-file-path: './TestResults/net*.trx'
@@ -760,7 +766,7 @@ jobs:
             exit 1
           fi
 
-      - name: Test Action - Separate multi-framework results
+      - name: Test Action - Separate multi-framework results (JS default)
         uses: ./
         with:
           trx-file-path: './TestResults/net*.trx'

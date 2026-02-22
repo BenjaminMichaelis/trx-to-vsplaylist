@@ -1,8 +1,5 @@
-name: 'TRX to VS Playlist Converter'
-description: 'JavaScript action that installs trx-to-vsplaylist in a pre step and runs the conversion.'
-branding:
-  icon: 'play'
-  color: 'blue'
+name: 'TRX to VS Playlist Converter (JS with pre)'
+description: 'JavaScript wrapper that installs trx-to-vsplaylist in a pre step and runs the conversion.'
 
 inputs:
   trx-file-path:
@@ -24,15 +21,7 @@ inputs:
     required: false
     default: 'false'
 
-outputs:
-  playlist-path:
-    description: 'Path to the generated playlist file (when using merge mode with single output)'
-  playlist-paths:
-    description: 'Colon-separated list of paths to generated playlist files (when using separate mode or multiple outputs)'
-  artifact-dir:
-    description: 'Directory containing the generated playlist file(s)'
-
 runs:
   using: 'node20'
-  pre: 'js/dist/pre.js'
-  main: 'js/dist/main.js'
+  pre: 'dist/pre.js'
+  main: 'dist/main.js'

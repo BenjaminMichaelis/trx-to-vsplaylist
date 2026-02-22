@@ -2,11 +2,12 @@
 
 A GitHub Action that converts [TRX (Visual Studio Test Results)](https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-extensions-test-reports?WT.mc_id=8B97120A00B57354) files to Visual Studio Test playlist files. This action uses the [`trx-to-vsplaylist`](https://www.nuget.org/packages/trx-to-vsplaylist) .NET global tool to perform the conversion and automatically uploads the generated playlist file as an artifact that can be easily downloaded from your GitHub Actions run.
 
-## Usage
+## Usage (JavaScript action with pre-install)
 
 ### Basic Usage
 
-Convert a single TRX file to a playlist:
+Convert a single TRX file to a playlist using the JavaScript action, which
+automatically installs the `trx-to-vsplaylist` tool in a pre step:
 
 ```yaml
 - name: Convert TRX to Playlist
@@ -17,7 +18,8 @@ Convert a single TRX file to a playlist:
 
 ### Merge Multiple TRX Files (Default Behavior)
 
-Merge multiple TRX files into a single playlist (great for multi-framework projects):
+Merge multiple TRX files into a single playlist (great for multi-framework
+projects):
 
 ```yaml
 - name: Convert TRX to Playlist
@@ -124,6 +126,30 @@ You can specify multiple outcomes by separating them with commas: `Failed,NotExe
 ## Artifact Download
 
 The generated playlist file is automatically uploaded as a workload artifact.
+
+## Composite variant (legacy behavior)
+
+If you need the original composite implementation (for example, to rely on its
+exact output and artifact behavior), you can reference it explicitly via the
+`composite` subdirectory:
+
+```yaml
+- name: Convert TRX to Playlist (composite)
+  uses: BenjaminMichaelis/trx-to-vsplaylist/composite@v2
+  with:
+    trx-file-path: './TestResults/results.trx'
+```
+
+## Building the JavaScript action
+
+Before publishing a new version, build the JavaScript action so that the
+bundled files in `js/dist` are up to date:
+
+```bash
+cd js
+npm install
+npm run build
+```
 
 ## Contributing
 

@@ -45,10 +45,10 @@ jobs:
           Write-Host "Latest NuGet package version: $latestVersion"
           echo "latest=$latestVersion" >> $env:GITHUB_OUTPUT
 
-      - name: Get current version from action.yml
+      - name: Get current version from composite/action.yml
         id: get_current
         run: |
-          CURRENT=$(grep -oP 'dotnet tool install --global trx-to-vsplaylist --version \K[0-9.]+(?=)' action.yml | head -1)
+          CURRENT=$(grep -oP 'dotnet tool install --global trx-to-vsplaylist --version \\K[0-9.]+(?=)' composite/action.yml | head -1)
           echo "Current version: $CURRENT"
           echo "current=$CURRENT" >> $GITHUB_OUTPUT
 
@@ -63,10 +63,10 @@ jobs:
             echo "update=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Update action.yml with new version
+      - name: Update composite/action.yml with new version
         if: steps.check.outputs.update == 'true'
         run: |
-          sed -i "s/dotnet tool install --global trx-to-vsplaylist --version [0-9.][0-9.]*/dotnet tool install --global trx-to-vsplaylist --version ${{ steps.get_version.outputs.latest }}/g" action.yml
+          sed -i "s/dotnet tool install --global trx-to-vsplaylist --version [0-9.][0-9.]*/dotnet tool install --global trx-to-vsplaylist --version ${{ steps.get_version.outputs.latest }}/g" composite/action.yml
 
       - name: Create Pull Request with changes
         if: steps.check.outputs.update == 'true'
@@ -96,7 +96,7 @@ jobs:
           fi
           
           git checkout -b "$BRANCH_NAME"
-          git add action.yml
+          git add composite/action.yml
           git commit -m "chore: bump trx-to-vsplaylist to ${{ steps.get_version.outputs.latest }}"
           git push origin "$BRANCH_NAME"
           gh pr create -B ${{ github.event.repository.default_branch }} -H "$BRANCH_NAME" \
