@@ -167,9 +167,16 @@ runs:
 
         echo "artifact-dir=$ARTIFACT_DIR" >> $GITHUB_OUTPUT
 
+        # Determine artifact name: use provided input or generate a unique default
+        ARTIFACT_NAME="${{ inputs.artifact-name }}"
+        if [ -z "$ARTIFACT_NAME" ]; then
+          ARTIFACT_NAME="test-results_${{ github.run_id }}_${RANDOM}${RANDOM}"
+        fi
+        echo "artifact-name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+
     - name: Upload Playlist Artifacts
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ inputs.artifact-name || format('test-results_{0}.playlist', github.run_id) }}
+        name: ${{ steps.convert.outputs.artifact-name }}
         path: ${{ steps.convert.outputs.artifact-dir }}/*.playlist
         if-no-files-found: 'warn'
