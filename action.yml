@@ -87,14 +87,17 @@ runs:
         set -euo pipefail
 
         # Expand glob patterns to all matching TRX files.
-        # For literal paths (no wildcards), quote the variable to support spaces in paths.
+        # For literal paths (no wildcards), split on whitespace to support multiple
+        # space-separated paths and validate each one exists.
         # For glob patterns, use unquoted expansion with globstar/nullglob.
         if [[ "$TRX_PATTERN" != *'*'* && "$TRX_PATTERN" != *'?'* && "$TRX_PATTERN" != *'['* ]]; then
-          if [[ ! -f "$TRX_PATTERN" ]]; then
-            echo "::error::TRX file not found: $TRX_PATTERN"
-            exit 1
-          fi
-          TRX_FILES=("$TRX_PATTERN")
+          read -ra TRX_FILES <<< "$TRX_PATTERN"
+          for f in "${TRX_FILES[@]}"; do
+            if [[ ! -f "$f" ]]; then
+              echo "::error::TRX file not found: $f"
+              exit 1
+            fi
+          done
         else
           shopt -s globstar nullglob
           TRX_FILES=($TRX_PATTERN)
