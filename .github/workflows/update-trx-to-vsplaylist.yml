@@ -102,5 +102,6 @@ jobs:
           gh pr create -B ${{ github.event.repository.default_branch }} -H "$BRANCH_NAME" \
             --title "chore: bump trx-to-vsplaylist to ${{ steps.get_version.outputs.latest }}" \
             --body "Automated PR to update trx-to-vsplaylist tool version in action.yml to ${{ steps.get_version.outputs.latest }}"
+          gh pr merge --auto --squash "$BRANCH_NAME"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
