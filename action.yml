@@ -26,8 +26,7 @@ inputs:
     default: 'Failed'
   artifact-name:
     description: >
-      Name for the uploaded artifact. If not specified, will use the playlist
-      file name (without extension).
+      Name for the uploaded artifact. If not specified, defaults to 'test-results-<run_id>'.
     required: false
   skip-empty:
     description: >
@@ -87,9 +86,19 @@ runs:
       run: |
         set -euo pipefail
 
-        # Expand glob patterns to all matching TRX files
-        shopt -s globstar nullglob
-        TRX_FILES=($TRX_PATTERN)
+        # Expand glob patterns to all matching TRX files.
+        # For literal paths (no wildcards), quote the variable to support spaces in paths.
+        # For glob patterns, use unquoted expansion with globstar/nullglob.
+        if [[ "$TRX_PATTERN" != *'*'* && "$TRX_PATTERN" != *'?'* && "$TRX_PATTERN" != *'['* ]]; then
+          if [[ ! -f "$TRX_PATTERN" ]]; then
+            echo "::error::TRX file not found: $TRX_PATTERN"
+            exit 1
+          fi
+          TRX_FILES=("$TRX_PATTERN")
+        else
+          shopt -s globstar nullglob
+          TRX_FILES=($TRX_PATTERN)
+        fi
         if [ ${#TRX_FILES[@]} -eq 0 ]; then
           echo "::error::No TRX files found matching pattern: $TRX_PATTERN"
           exit 1
