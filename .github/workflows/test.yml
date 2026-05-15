@@ -100,6 +100,11 @@ jobs:
           </TestRun>
           EOF
 
+          # Create copies in a path that includes spaces for glob expansion tests
+          mkdir -p "Test Results"
+          cp TestResults/sample.trx "Test Results/sample.trx"
+          cp TestResults/additional.trx "Test Results/additional.trx"
+
       - name: Test Action - Basic Usage
         uses: ./
         with:
@@ -360,6 +365,30 @@ jobs:
             exit 1
           fi
 
+      # Test glob pattern support when the path itself contains spaces
+      - name: Test Action - Glob pattern with spaces in path
+        uses: ./
+        with:
+          trx-file-path: './Test Results/*.trx'
+          output-directory: './glob-spaces-merged'
+          test-outcomes: 'Failed'
+          artifact-name: 'test-playlist-glob-spaces'
+
+      - name: Verify spaced glob pattern creates merged playlist
+        run: |
+          if [ -f "./glob-spaces-merged/merged.playlist" ]; then
+            echo "✅ Merged playlist created from spaced glob pattern"
+            if grep -q "TestMethod1" "./glob-spaces-merged/merged.playlist" && grep -q "AdditionalTest" "./glob-spaces-merged/merged.playlist"; then
+              echo "✅ Spaced glob playlist contains expected tests"
+            else
+              echo "❌ Spaced glob playlist missing expected tests"
+              exit 1
+            fi
+          else
+            echo "❌ Merged playlist for spaced glob pattern not found"
+            exit 1
+          fi
+
       # Test glob pattern support with SEPARATE mode
       - name: Test Action - Glob pattern with separate mode
         uses: ./
@@ -424,6 +453,57 @@ jobs:
             exit 1
           else
             echo "✅ No playlist file created as expected with skip-empty enabled and no matching tests."
+          fi
+
+      # Ensure stale merge output does not produce a false-positive output path
+      - name: Create stale merge playlist file
+        run: |
+          mkdir -p ./stale-merge-output
+          echo "stale data" > ./stale-merge-output/merged.playlist
+
+      - name: Test Action - skip-empty with stale merge file
+        id: stale-merge-output-test
+        uses: ./
+        with:
+          trx-file-path: './TestResults/comprehensive.trx'
+          output-directory: './stale-merge-output'
+          test-outcomes: 'Pending' # No test in the TRX has this outcome
+          skip-empty: true
+          artifact-name: 'test-playlist-stale-merge'
+
+      - name: Verify stale merge file is not treated as fresh output
+        run: |
+          if [ -n "${{ steps.stale-merge-output-test.outputs.playlist-path }}" ]; then
+            echo "❌ playlist-path should be empty when no new merge playlist is produced"
+            exit 1
+          else
+            echo "✅ stale merge file was not treated as fresh output"
+          fi
+
+      # Ensure stale separate outputs do not produce false-positive playlist-paths
+      - name: Create stale separate playlist files
+        run: |
+          mkdir -p ./stale-separate-output
+          echo "stale data" > ./stale-separate-output/old.playlist
+
+      - name: Test Action - skip-empty with stale separate files
+        id: stale-separate-output-test
+        uses: ./
+        with:
+          trx-file-path: './TestResults/comprehensive.trx'
+          output-directory: './stale-separate-output'
+          separate: true
+          test-outcomes: 'Pending' # No test in the TRX has this outcome
+          skip-empty: true
+          artifact-name: 'test-playlist-stale-separate'
+
+      - name: Verify stale separate files are not treated as fresh outputs
+        run: |
+          if [ -n "${{ steps.stale-separate-output-test.outputs.playlist-paths }}" ]; then
+            echo "❌ playlist-paths should be empty when no new separate playlists are produced"
+            exit 1
+          else
+            echo "✅ stale separate files were not treated as fresh outputs"
           fi
 
       # Test outputs are set correctly

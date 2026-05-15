@@ -58,7 +58,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '10.x'
     
@@ -96,9 +96,9 @@ jobs:
 | `trx-file-path` | Path or glob pattern to the TRX file(s) to convert. Supports wildcards like `*.trx` or `**/TestResults/*.trx`. Multiple files will be merged by default. | Yes | - |
 | `output-directory` | Directory to write the output playlist file(s) to. If not specified, saves in the same directory as the first TRX file. | No | - |
 | `test-outcomes` | Test outcomes to include in the playlist (comma-separated). Accepts: Passed, Failed, NotExecuted, Inconclusive, Timeout, Pending | No | `Failed` |
-| `artifact-name` | Name for the uploaded artifact. If not specified, defaults to appropriate name based on mode. | No | `test-playlists` |
+| `artifact-name` | Name for the uploaded artifact. If not specified, defaults to `test-results-{run_id}`. | No | `test-results-{run_id}` (auto-generated) |
 | `skip-empty` | Skip writing out empty playlist files. If true, empty playlists will not be created. | No | `true` |
-| `separate` | When multiple TRX files are found, create separate playlist files for each instead of merging into one. Output directory must be specified when this is true. | No | `false` |
+| `separate` | When multiple TRX files are found, create separate playlist files for each instead of merging into one. When `false` (default), results are merged into a single playlist (`merged.playlist` for multiple inputs) in the output directory, or alongside the first TRX file if no output directory is set. | No | `false` |
 
 ## Outputs
 
