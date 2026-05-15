@@ -125,6 +125,15 @@ You can specify multiple outcomes by separating them with commas: `Failed,NotExe
 
 The generated playlist file is automatically uploaded as a workload artifact.
 
+## Dependabot auto-merge
+
+This repository includes `.github/workflows/dependabot-automerge.yml` to auto-approve and enable auto-merge for Dependabot pull requests.
+
+Required repository settings:
+
+1. Enable **Allow auto-merge** in repository settings.
+2. Configure branch protection to **Require status checks to pass before merging** on target branches.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
