@@ -98,7 +98,7 @@ jobs:
 | `test-outcomes` | Test outcomes to include in the playlist (comma-separated). Accepts: Passed, Failed, NotExecuted, Inconclusive, Timeout, Pending | No | `Failed` |
 | `artifact-name` | Name for the uploaded artifact. If not specified, defaults to `test-results-{run_id}`. | No | `test-results-{run_id}` (auto-generated) |
 | `skip-empty` | Skip writing out empty playlist files. If true, empty playlists will not be created. | No | `true` |
-| `separate` | When multiple TRX files are found, create separate playlist files for each instead of merging into one. When not set, playlists will be created in the same directory as the source TRX files. | No | `false` |
+| `separate` | When multiple TRX files are found, create separate playlist files for each instead of merging into one. When `false` (default), results are merged into a single playlist (`merged.playlist` for multiple inputs) in the output directory, or alongside the first TRX file if no output directory is set. | No | `false` |
 
 ## Outputs
 
