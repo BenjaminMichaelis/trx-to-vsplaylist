@@ -1,0 +1,130 @@
+import * as glob from '@actions/glob';
+import * as exec from '@actions/exec';
+import * as core from '@actions/core';
+import fs from 'fs';
+import path from 'path';
+
+/**
+ * Resolve TRX files from a pattern, preserving backward compatibility
+ * with space-separated literal paths and space-separated glob patterns.
+ */
+async function resolveTrxFiles(pattern) {
+  const hasGlobChars = /[*?[]/.test(pattern);
+
+  if (!hasGlobChars) {
+    // Literal path(s) — check single path first, then try space-splitting
+    if (fs.existsSync(pattern)) return [path.resolve(pattern)];
+    const paths = pattern.split(/\s+/).filter(Boolean);
+    for (const p of paths) {
+      if (!fs.existsSync(p)) throw new Error(`TRX file not found: ${p}`);
+    }
+    return paths.map((p) => path.resolve(p));
+  }
+
+  // Glob: convert space-separated patterns to newline-separated for @actions/glob
+  const patterns = pattern.split(/\s+/).filter(Boolean);
+  const globber = await glob.create(patterns.join('\n'));
+  const files = await globber.glob();
+
+  return files;
+}
+
+export async function convert() {
+  const trxPattern = core.getInput('trx-file-path', { required: true });
+  const outputDirectory = core.getInput('output-directory');
+  const outcomes = core.getInput('test-outcomes');
+  const skipEmpty = core.getBooleanInput('skip-empty');
+  const separate = core.getBooleanInput('separate');
+
+  // 1. Resolve TRX files
+  const trxFiles = await resolveTrxFiles(trxPattern);
+  if (trxFiles.length === 0) {
+    throw new Error(`No TRX files found matching pattern: ${trxPattern}`);
+  }
+  core.info(`Found ${trxFiles.length} TRX file(s): ${trxFiles.join(', ')}`);
+
+  // 2. Determine artifact directory
+  const artifactDir = outputDirectory || path.dirname(trxFiles[0]);
+  if (outputDirectory) fs.mkdirSync(artifactDir, { recursive: true });
+
+  // 3. Build CLI args
+  const args = ['convert', ...trxFiles];
+  let outputFile;
+
+  if (separate) {
+    args.push('--output', artifactDir, '--separate');
+    core.info(
+      `Using separate mode: creating individual playlists in ${artifactDir}`
+    );
+  } else {
+    const basename = path.basename(trxFiles[0], '.trx');
+    outputFile =
+      trxFiles.length > 1
+        ? path.join(artifactDir, 'merged.playlist')
+        : path.join(artifactDir, `${basename}.playlist`);
+    args.push('--output', outputFile);
+    core.info(`Using merge mode: creating combined playlist at ${outputFile}`);
+  }
+
+  if (skipEmpty) args.push('--skip-empty');
+
+  if (outcomes) {
+    for (const o of outcomes.split(',')) {
+      const trimmed = o.trim();
+      if (trimmed) args.push('--outcome', trimmed);
+    }
+  }
+
+  // 4. Run marker for freshness detection
+  const runMarker = path.join(
+    process.env.RUNNER_TEMP,
+    `trx-run-marker-${process.pid}`
+  );
+  fs.writeFileSync(runMarker, '');
+  const markerTime = fs.statSync(runMarker).mtimeMs;
+
+  // 5. Execute CLI
+  core.debug(`Running: trx-to-vsplaylist ${args.join(' ')}`);
+  await exec.exec('trx-to-vsplaylist', args);
+
+  // 6. Set outputs using freshness check
+  if (separate) {
+    const playlists = fs
+      .readdirSync(artifactDir)
+      .filter((f) => f.endsWith('.playlist'))
+      .map((f) => path.join(artifactDir, f))
+      .filter((f) => fs.statSync(f).mtimeMs > markerTime)
+      .sort();
+
+    if (playlists.length === 0 && !skipEmpty) {
+      throw new Error('No playlist files were created');
+    }
+    if (playlists.length > 0) {
+      core.info(`Successfully created ${playlists.length} playlist file(s)`);
+    } else {
+      core.info(
+        'Info: No playlist files were created (likely due to --skip-empty and no matching tests)'
+      );
+    }
+    core.setOutput('playlist-paths', playlists.join(':'));
+  } else {
+    if (
+      outputFile &&
+      fs.existsSync(outputFile) &&
+      fs.statSync(outputFile).mtimeMs > markerTime
+    ) {
+      core.info(`Successfully created playlist file: ${outputFile}`);
+      core.setOutput('playlist-path', outputFile);
+    } else if (!skipEmpty) {
+      throw new Error(`Playlist file was not created at: ${outputFile}`);
+    } else {
+      core.info(
+        'Info: Playlist file was not created (likely due to --skip-empty and no matching tests)'
+      );
+    }
+  }
+
+  fs.unlinkSync(runMarker);
+  core.setOutput('artifact-dir', artifactDir);
+  return artifactDir;
+}
