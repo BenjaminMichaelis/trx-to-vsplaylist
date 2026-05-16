@@ -7,6 +7,7 @@
   "scripts": {
     "package": "npx rimraf ./dist && npx rollup --config rollup.config.js",
     "build": "npm run package",
+    "lint": "eslint src/ --max-warnings 0",
     "test": "NODE_OPTIONS=--experimental-vm-modules NODE_NO_WARNINGS=1 npx jest",
     "all": "npm run test && npm run package"
   },
@@ -22,6 +23,7 @@
     "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
+    "eslint": "^9.0.0",
     "rollup": "^4.57.1",
     "rimraf": "^6.0.0"
   },
