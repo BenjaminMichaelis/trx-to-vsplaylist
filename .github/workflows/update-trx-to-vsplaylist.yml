@@ -4,28 +4,8 @@ on:
   schedule:
     - cron: '0 2 * * *' # every night at 2am UTC
   workflow_dispatch:
-  pull_request_target:
-    types: [opened, reopened, synchronize]
 
 jobs:
-    # For GitHub Auto Merge to work it must be enabled on the repo.
-  # This can be done with the script here:
-  # https://github.com/BenjaminMichaelis/DotnetTemplates/blob/main/SetupRepo.ps1
-  # See documentation here:
-  # https://docs.github.com/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/automatically-merging-a-pull-request
-  automerge:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request_target'
-
-    permissions:
-      pull-requests: write
-      contents: write
-
-    steps:
-      - uses: fastify/github-action-merge-dependabot@1b2ed42db8f9d81a46bac83adedfc03eb5149dff # v3.11.2
-        with:
-            use-github-auto-merge: true
-
   update-tool-version:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
