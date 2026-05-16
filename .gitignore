@@ -23,3 +23,5 @@ bin/
 obj/
 dist/
 node_modules/
+!.github/actions/setup-trx-tool/dist/
+!.github/actions/setup-trx-tool/dist/**

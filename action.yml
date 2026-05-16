@@ -60,19 +60,8 @@ runs:
       with:
         dotnet-version: '10.x'
 
-    - name: Install trx-to-vsplaylist tool
-      shell: bash
-      run: |
-        set -euo pipefail
-        echo "Installing trx-to-vsplaylist tool..."
-        TOOL_PATH="$RUNNER_TEMP/.dotnet-tools"
-        mkdir -p "$TOOL_PATH"
-        dotnet tool install --tool-path "$TOOL_PATH" trx-to-vsplaylist --version 1.3.0 \
-          --source https://api.nuget.org/v3/index.json \
-          || dotnet tool update --tool-path "$TOOL_PATH" trx-to-vsplaylist --version 1.3.0 \
-               --source https://api.nuget.org/v3/index.json
-        echo "$TOOL_PATH" >> "$GITHUB_PATH"
-        echo "✅ trx-to-vsplaylist tool installed successfully"
+    - name: Setup trx-to-vsplaylist tool
+      uses: ./.github/actions/setup-trx-tool
 
     - name: Convert TRX to Playlist
       id: convert
@@ -220,7 +209,7 @@ runs:
         echo "artifact-dir=$ARTIFACT_DIR" >> "$GITHUB_OUTPUT"
 
     - name: Upload Playlist Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: ${{ inputs.artifact-name || format('test-results-{0}', github.run_id) }}
         path: ${{ steps.convert.outputs.artifact-dir }}/*.playlist
