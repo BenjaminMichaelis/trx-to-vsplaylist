@@ -50,10 +50,13 @@ export async function ensureDotnet() {
 
   core.addPath(installDir);
   core.exportVariable('DOTNET_ROOT', installDir);
+  // Also set process.env so spawned child processes in this same action run inherit it
+  process.env.DOTNET_ROOT = installDir;
 
   // On macOS arm64, also set DOTNET_ROOT_ARM64 so the dotnet binary can find the runtime
   if (os.platform() === 'darwin' && os.arch() === 'arm64') {
     core.exportVariable('DOTNET_ROOT_ARM64', installDir);
+    process.env.DOTNET_ROOT_ARM64 = installDir;
   }
 
   core.info(`.NET SDK installed to ${installDir}`);

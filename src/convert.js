@@ -1,8 +1,58 @@
-import * as glob from '@actions/glob';
 import * as exec from '@actions/exec';
 import * as core from '@actions/core';
 import fs from 'fs';
 import path from 'path';
+
+function listFiles(dir, recursive) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const results = [];
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (recursive) results.push(...listFiles(fullPath, true));
+    } else {
+      results.push(fullPath);
+    }
+  }
+  return results;
+}
+
+function globToRegex(absForwardPattern) {
+  // Split on ** first, then handle * and ? per segment to avoid control chars
+  const escapedParts = absForwardPattern.split('**').map((part) =>
+    part
+      .replace(/[.+^${}()|[\]\\]/g, '\\$&') // escape regex special chars
+      .replace(/\*/g, '[^/]*') // * matches within a path segment
+      .replace(/\?/g, '[^/]') // ? matches a single char within a segment
+  );
+  // Re-join with .* which is what ** matches (any chars including /)
+  return new RegExp(
+    `^${escapedParts.join('.*')}$`,
+    process.platform === 'win32' ? 'i' : ''
+  );
+}
+
+// Cross-platform glob using fs.readdirSync + regex matching.
+// @actions/glob has a bug on Windows where path.join produces backslash paths
+// that don't match minimatch patterns which use forward slashes.
+async function globPattern(pattern) {
+  const absPattern = path.resolve(pattern).split(path.sep).join('/');
+  const firstGlob = absPattern.search(/[*?[]/);
+  const beforeGlob = absPattern.slice(0, firstGlob);
+  const baseDir = beforeGlob.endsWith('/')
+    ? beforeGlob.slice(0, -1)
+    : beforeGlob.slice(0, beforeGlob.lastIndexOf('/'));
+  const recursive = absPattern.includes('**');
+  const regex = globToRegex(absPattern);
+  return listFiles(baseDir, recursive)
+    .filter((f) => regex.test(f.split(path.sep).join('/')))
+    .sort();
+}
 
 /**
  * Resolve TRX files from a pattern, preserving backward compatibility
@@ -22,14 +72,13 @@ async function resolveTrxFiles(pattern) {
   }
 
   // Try the full pattern as-is first (handles paths with spaces like './Test Results/*.trx')
-  const globber = await glob.create(pattern);
-  let files = await globber.glob();
+  let files = await globPattern(pattern);
 
   // Legacy fallback: space-separated patterns (e.g. '**/*.trx **/other.trx')
   if (files.length === 0 && /\s/.test(pattern)) {
-    const patterns = pattern.split(/\s+/).filter(Boolean);
-    const multiGlobber = await glob.create(patterns.join('\n'));
-    files = await multiGlobber.glob();
+    for (const p of pattern.split(/\s+/).filter(Boolean)) {
+      files = files.concat(await globPattern(p));
+    }
   }
 
   return files;
