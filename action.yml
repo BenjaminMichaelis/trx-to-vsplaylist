@@ -40,6 +40,11 @@ inputs:
       Default: false (merge into single playlist)
     required: false
     default: 'false'
+  tool-version:
+    description: >
+      Version of trx-to-vsplaylist .NET tool to install.
+    required: false
+    default: '1.3.0'
 
 outputs:
   playlist-path:
@@ -61,7 +66,17 @@ runs:
         dotnet-version: '10.x'
 
     - name: Setup trx-to-vsplaylist tool
-      uses: ./.github/actions/setup-trx-tool
+      shell: bash
+      env:
+        TOOL_VERSION: ${{ inputs.tool-version }}
+      run: |
+        set -euo pipefail
+        TOOL_PATH="$RUNNER_TEMP/.dotnet-tools-trx-to-vsplaylist"
+        mkdir -p "$TOOL_PATH"
+        if ! dotnet tool install --tool-path "$TOOL_PATH" trx-to-vsplaylist --version "$TOOL_VERSION" --source https://api.nuget.org/v3/index.json; then
+          dotnet tool update --tool-path "$TOOL_PATH" trx-to-vsplaylist --version "$TOOL_VERSION" --source https://api.nuget.org/v3/index.json
+        fi
+        echo "$TOOL_PATH" >> "$GITHUB_PATH"
 
     - name: Convert TRX to Playlist
       id: convert
