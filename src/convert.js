@@ -21,10 +21,16 @@ async function resolveTrxFiles(pattern) {
     return paths.map((p) => path.resolve(p));
   }
 
-  // Glob: convert space-separated patterns to newline-separated for @actions/glob
-  const patterns = pattern.split(/\s+/).filter(Boolean);
-  const globber = await glob.create(patterns.join('\n'));
-  const files = await globber.glob();
+  // Try the full pattern as-is first (handles paths with spaces like './Test Results/*.trx')
+  const globber = await glob.create(pattern);
+  let files = await globber.glob();
+
+  // Legacy fallback: space-separated patterns (e.g. '**/*.trx **/other.trx')
+  if (files.length === 0 && /\s/.test(pattern)) {
+    const patterns = pattern.split(/\s+/).filter(Boolean);
+    const multiGlobber = await glob.create(patterns.join('\n'));
+    files = await multiGlobber.glob();
+  }
 
   return files;
 }
@@ -88,25 +94,27 @@ export async function convert() {
   await exec.exec('trx-to-vsplaylist', args);
 
   // 6. Set outputs using freshness check
+  let freshPlaylists = [];
+
   if (separate) {
-    const playlists = fs
+    freshPlaylists = fs
       .readdirSync(artifactDir)
       .filter((f) => f.endsWith('.playlist'))
       .map((f) => path.join(artifactDir, f))
       .filter((f) => fs.statSync(f).mtimeMs > markerTime)
       .sort();
 
-    if (playlists.length === 0 && !skipEmpty) {
+    if (freshPlaylists.length === 0 && !skipEmpty) {
       throw new Error('No playlist files were created');
     }
-    if (playlists.length > 0) {
-      core.info(`Successfully created ${playlists.length} playlist file(s)`);
+    if (freshPlaylists.length > 0) {
+      core.info(`Successfully created ${freshPlaylists.length} playlist file(s)`);
     } else {
       core.info(
         'Info: No playlist files were created (likely due to --skip-empty and no matching tests)'
       );
     }
-    core.setOutput('playlist-paths', playlists.join(':'));
+    core.setOutput('playlist-paths', freshPlaylists.join(':'));
   } else {
     if (
       outputFile &&
@@ -115,6 +123,7 @@ export async function convert() {
     ) {
       core.info(`Successfully created playlist file: ${outputFile}`);
       core.setOutput('playlist-path', outputFile);
+      freshPlaylists = [outputFile];
     } else if (!skipEmpty) {
       throw new Error(`Playlist file was not created at: ${outputFile}`);
     } else {
@@ -126,5 +135,5 @@ export async function convert() {
 
   fs.unlinkSync(runMarker);
   core.setOutput('artifact-dir', artifactDir);
-  return artifactDir;
+  return { artifactDir, freshPlaylists };
 }

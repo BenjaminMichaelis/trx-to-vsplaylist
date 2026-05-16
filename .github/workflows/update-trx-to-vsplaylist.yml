@@ -75,7 +75,7 @@ jobs:
         env:
           LATEST: ${{ steps.get_version.outputs.latest }}
         run: |
-          sed -i "/^  tool-version:/,/^outputs:/ s/default: '[0-9][0-9.]*'/default: '$LATEST'/" action.yml
+          sed -i "/^  tool-version:/,/^  dotnet-version:/ s/default: '[0-9][0-9.]*'/default: '$LATEST'/" action.yml
 
       - name: Create Pull Request with changes
         if: steps.check.outputs.update == 'true'

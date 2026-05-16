@@ -9,6 +9,9 @@ export async function installTool() {
     '.dotnet-tools-trx-to-vsplaylist'
   );
 
+  // Save state before install so post-step can clean up even if install fails
+  core.saveState('toolPath', toolPath);
+
   try {
     await exec.exec('dotnet', [
       'tool',
@@ -36,6 +39,5 @@ export async function installTool() {
   }
 
   core.addPath(toolPath);
-  core.saveState('toolPath', toolPath);
   core.info(`trx-to-vsplaylist v${toolVersion} installed to ${toolPath}`);
 }

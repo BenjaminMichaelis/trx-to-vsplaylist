@@ -13,10 +13,10 @@ export async function run() {
     await installTool();
 
     // Phase 3: Convert TRX to Playlist
-    const artifactDir = await convert();
+    const { artifactDir, freshPlaylists } = await convert();
 
-    // Phase 4: Upload playlist artifacts
-    await uploadPlaylistArtifact(artifactDir);
+    // Phase 4: Upload playlist artifacts (only fresh files, not stale ones)
+    await uploadPlaylistArtifact(freshPlaylists, artifactDir);
   } catch (error) {
     core.setFailed(error.message);
   }

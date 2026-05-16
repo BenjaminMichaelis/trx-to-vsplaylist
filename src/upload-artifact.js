@@ -1,14 +1,10 @@
 import { DefaultArtifactClient } from '@actions/artifact';
-import * as glob from '@actions/glob';
 import * as core from '@actions/core';
 
-export async function uploadPlaylistArtifact(artifactDir) {
+export async function uploadPlaylistArtifact(files, artifactDir) {
   const artifactName =
     core.getInput('artifact-name') ||
     `test-results-${process.env.GITHUB_RUN_ID}`;
-
-  const globber = await glob.create(`${artifactDir}/*.playlist`);
-  const files = await globber.glob();
 
   if (files.length === 0) {
     // Matches composite action's if-no-files-found: 'warn'
