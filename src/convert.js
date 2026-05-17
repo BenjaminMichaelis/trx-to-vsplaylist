@@ -55,9 +55,19 @@ function globToRegex(absForwardPattern) {
 
   // Split on ** first, then handle * and ? per segment to avoid control chars
   const escapedParts = absForwardPattern.split('**').map(convertPart);
-  // Re-join with .* which is what ** matches (any chars including /)
+  // Re-join: when both sides carry a slash around **, use (?:/.*)? so zero
+  // intermediate directories are allowed (e.g. **/foo matches foo at root).
+  let regexBody = escapedParts[0];
+  for (let i = 1; i < escapedParts.length; i++) {
+    const next = escapedParts[i];
+    if (regexBody.endsWith('/') && next.startsWith('/')) {
+      regexBody = regexBody.slice(0, -1) + '(?:/.*)?' + next;
+    } else {
+      regexBody += '.*' + next;
+    }
+  }
   return new RegExp(
-    `^${escapedParts.join('.*')}$`,
+    `^${regexBody}$`,
     process.platform === 'win32' ? 'i' : ''
   );
 }
