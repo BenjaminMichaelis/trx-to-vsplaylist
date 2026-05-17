@@ -4,7 +4,7 @@ import * as tc from '@actions/tool-cache';
 import * as io from '@actions/io';
 import path from 'path';
 import os from 'os';
-import { chmodSync } from 'fs';
+import { chmodSync, realpathSync } from 'fs';
 
 function isInstalledVersionCompatible(installedVersion, channel) {
   const normalized = channel.trim().replace(/\.x$/i, '');
@@ -19,10 +19,7 @@ function isInstalledVersionCompatible(installedVersion, channel) {
 }
 
 async function configureDotnetEnvironment(installDir) {
-  const dotnetRoot =
-    installDir ||
-    process.env.DOTNET_ROOT ||
-    path.dirname(await io.which('dotnet', true));
+  const dotnetRoot = installDir || process.env.DOTNET_ROOT || (await getDotnetRoot());
 
   core.exportVariable('DOTNET_ROOT', dotnetRoot);
   process.env.DOTNET_ROOT = dotnetRoot;
@@ -32,6 +29,12 @@ async function configureDotnetEnvironment(installDir) {
     core.exportVariable('DOTNET_ROOT_ARM64', dotnetRoot);
     process.env.DOTNET_ROOT_ARM64 = dotnetRoot;
   }
+}
+
+async function getDotnetRoot() {
+  const dotnetPath = await io.which('dotnet', true);
+  const realDotnetPath = realpathSync(dotnetPath);
+  return path.dirname(realDotnetPath);
 }
 
 export async function ensureDotnet() {
