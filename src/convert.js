@@ -77,12 +77,21 @@ export function globToRegex(absForwardPattern) {
 // that don't match minimatch patterns which use forward slashes.
 async function globPattern(pattern) {
   const absPattern = path.resolve(pattern).split(path.sep).join('/');
-  const firstGlob = absPattern.search(/[*?[]/);
-  const beforeGlob = absPattern.slice(0, firstGlob);
-  const baseDir = beforeGlob.endsWith('/')
-    ? beforeGlob.slice(0, -1)
-    : beforeGlob.slice(0, beforeGlob.lastIndexOf('/'));
-  const recursive = absPattern.includes('**');
+  const segments = absPattern.split('/');
+  const firstGlobSegmentIndex = segments.findIndex((segment) =>
+    /[*?[]/.test(segment)
+  );
+  const rootSegments =
+    firstGlobSegmentIndex === -1
+      ? segments.slice(0, -1)
+      : segments.slice(0, firstGlobSegmentIndex);
+  let baseDir = rootSegments.join('/');
+  if (baseDir === '') baseDir = '/';
+  if (/^[A-Za-z]:$/.test(baseDir)) baseDir += '/';
+  const hasGlobInDirectorySegment = segments
+    .slice(0, -1)
+    .some((segment) => /[*?[]/.test(segment));
+  const recursive = absPattern.includes('**') || hasGlobInDirectorySegment;
   const regex = globToRegex(absPattern);
   return listFiles(baseDir, recursive)
     .filter((f) => regex.test(f.split(path.sep).join('/')))
@@ -93,7 +102,7 @@ async function globPattern(pattern) {
  * Resolve TRX files from a pattern, preserving backward compatibility
  * with space-separated literal paths and space-separated glob patterns.
  */
-async function resolveTrxFiles(pattern) {
+export async function resolveTrxFiles(pattern) {
   const hasGlobChars = /[*?[]/.test(pattern);
 
   if (!hasGlobChars) {

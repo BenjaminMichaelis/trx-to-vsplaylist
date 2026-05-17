@@ -90,6 +90,7 @@ jobs:
         uses: ./
         with:
           trx-file-path: './TestResults/comprehensive.trx'
+          artifact-name: test-results-${{ matrix.os }}
 
       - name: Verify Action Outputs
         shell: bash

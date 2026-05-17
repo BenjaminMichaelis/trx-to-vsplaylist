@@ -1,6 +1,8 @@
-import { describe, it } from 'node:test';
+import { afterEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { globToRegex } from '../src/convert.js';
+import fs from 'fs';
+import path from 'path';
+import { globToRegex, resolveTrxFiles } from '../src/convert.js';
 
 // globToRegex expects an absolute forward-slash path pattern.
 // We use a fake absolute root that works on all platforms for testing.
@@ -138,5 +140,30 @@ describe('globToRegex', () => {
         assert.ok(!flags.includes('i'), 'expected no case-insensitive flag on non-win32');
       }
     });
+  });
+});
+
+describe('resolveTrxFiles', () => {
+  const tempDirs = [];
+
+  afterEach(() => {
+    for (const dir of tempDirs.splice(0)) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('matches wildcard directory segments without requiring **', async () => {
+    const tempDir = fs.mkdtempSync(path.join(process.cwd(), 'tmp-convert-test-'));
+    tempDirs.push(tempDir);
+
+    const trxDir = path.join(tempDir, 'TestResults123');
+    const trxFile = path.join(trxDir, 'sample.trx');
+    fs.mkdirSync(trxDir, { recursive: true });
+    fs.writeFileSync(trxFile, 'sample');
+
+    const files = await resolveTrxFiles(
+      path.join(tempDir, 'TestResults*', 'sample.trx')
+    );
+    assert.deepEqual(files, [path.resolve(trxFile)]);
   });
 });
