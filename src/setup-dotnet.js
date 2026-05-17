@@ -7,7 +7,7 @@ import os from 'os';
 import { chmodSync, realpathSync } from 'fs';
 
 export function isInstalledVersionCompatible(installedVersion, channel) {
-  const normalized = channel.trim().replace(/\.x$/i, '');
+  const normalized = normalizeDotnetChannel(channel);
   if (!normalized) return true;
   if (normalized.includes('.')) {
     return (
@@ -16,6 +16,10 @@ export function isInstalledVersionCompatible(installedVersion, channel) {
     );
   }
   return installedVersion.split('.')[0] === normalized;
+}
+
+export function normalizeDotnetChannel(channel) {
+  return channel.trim().replace(/\.x$/i, '');
 }
 
 async function configureDotnetEnvironment(installDir) {
@@ -39,6 +43,7 @@ async function getDotnetRoot() {
 
 export async function ensureDotnet() {
   const channel = core.getInput('dotnet-version') || '10.0';
+  const installChannel = normalizeDotnetChannel(channel);
 
   // Check if dotnet is already on PATH and matches the requested channel
   const dotnetVersion = await exec.getExecOutput('dotnet', ['--version'], {
@@ -75,8 +80,12 @@ export async function ensureDotnet() {
       '-NonInteractive',
       '-ExecutionPolicy',
       'Unrestricted',
-      '-Command',
-      `& '${scriptPath}' -Channel ${channel} -InstallDir '${installDir}'`,
+      '-File',
+      scriptPath,
+      '-Channel',
+      installChannel,
+      '-InstallDir',
+      installDir,
     ]);
   } else {
     // Download and run dotnet-install.sh
@@ -86,7 +95,7 @@ export async function ensureDotnet() {
     chmodSync(scriptPath, '755');
     await exec.exec(scriptPath, [
       '--channel',
-      channel,
+      installChannel,
       '--install-dir',
       installDir,
     ]);

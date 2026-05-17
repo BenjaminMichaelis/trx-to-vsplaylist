@@ -443,8 +443,9 @@ export default [
   "scripts": {
     "package": "npx rimraf ./dist && npx rollup --config rollup.config.js",
     "build": "npm run package",
-    "test": "NODE_OPTIONS=--experimental-vm-modules NODE_NO_WARNINGS=1 npx jest",
-    "all": "npm run test && npm run package"
+    "lint": "eslint src/ __tests__/ --max-warnings 0",
+    "test": "node --test",
+    "all": "npm run lint && npm run test && npm run package"
   },
   "dependencies": {
     "@actions/core": "^3.0.0",
@@ -455,11 +456,10 @@ export default [
     "@actions/tool-cache": "^2.0.1"
   },
   "devDependencies": {
-    "@jest/globals": "^30.2.0",
     "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
-    "jest": "^30.2.0",
+    "eslint": "^9.0.0",
     "rollup": "^4.57.1",
     "rimraf": "^6.0.0"
   },

@@ -1,6 +1,23 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { isInstalledVersionCompatible } from '../src/setup-dotnet.js';
+import {
+  isInstalledVersionCompatible,
+  normalizeDotnetChannel,
+} from '../src/setup-dotnet.js';
+
+describe('normalizeDotnetChannel', () => {
+  it('normalizes major wildcard channels', () => {
+    assert.equal(normalizeDotnetChannel('10.x'), '10');
+  });
+
+  it('normalizes minor wildcard channels', () => {
+    assert.equal(normalizeDotnetChannel('10.0.x'), '10.0');
+  });
+
+  it('trims whitespace while normalizing', () => {
+    assert.equal(normalizeDotnetChannel(' 10.0.x '), '10.0');
+  });
+});
 
 describe('isInstalledVersionCompatible', () => {
   describe('exact minor channel (e.g. "10.0")', () => {
