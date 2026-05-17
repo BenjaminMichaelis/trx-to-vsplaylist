@@ -2,6 +2,7 @@
 name: 'TRX to VS Playlist Converter'
 description: >
   Convert TRX test result files to Visual Studio Test playlist files.
+author: 'BenjaminMichaelis'
 branding:
   icon: 'play'
   color: 'blue'

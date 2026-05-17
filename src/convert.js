@@ -22,7 +22,7 @@ function listFiles(dir, recursive) {
   return results;
 }
 
-function globToRegex(absForwardPattern) {
+export function globToRegex(absForwardPattern) {
   const convertPart = (part) => {
     let regex = '';
     for (let i = 0; i < part.length; i++) {

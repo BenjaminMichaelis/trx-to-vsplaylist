@@ -5,7 +5,7 @@ export default [
     ignores: ['dist/**', 'node_modules/**']
   },
   {
-    files: ['src/**/*.js'],
+    files: ['src/**/*.js', '__tests__/**/*.js'],
     languageOptions: {
       ecmaVersion: 2024,
       sourceType: 'module',

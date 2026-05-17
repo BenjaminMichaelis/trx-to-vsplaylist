@@ -36,6 +36,10 @@ jobs:
         id: npm-lint
         run: npm run lint
 
+      - name: Test
+        id: npm-test
+        run: npm run test
+
   test-action:
     name: GitHub Actions Test
     runs-on: ${{ matrix.os }}
@@ -86,3 +90,12 @@ jobs:
         uses: ./
         with:
           trx-file-path: './TestResults/comprehensive.trx'
+
+      - name: Verify Action Outputs
+        shell: bash
+        run: |
+          if [ -z "${{ steps.test-action.outputs.artifact-dir }}" ]; then
+            echo "ERROR: artifact-dir output was empty" && exit 1
+          fi
+          echo "artifact-dir: ${{ steps.test-action.outputs.artifact-dir }}"
+          echo "playlist-paths: ${{ steps.test-action.outputs.playlist-paths }}"

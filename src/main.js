@@ -18,6 +18,7 @@ export async function run() {
     // Phase 4: Upload playlist artifacts (only fresh files, not stale ones)
     await uploadPlaylistArtifact(freshPlaylists, artifactDir);
   } catch (error) {
-    core.setFailed(error.message);
+    core.setFailed(error instanceof Error ? error.message : String(error));
+    core.debug(error instanceof Error ? error.stack : String(error));
   }
 }

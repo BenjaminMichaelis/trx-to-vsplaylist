@@ -6,7 +6,7 @@ import path from 'path';
 import os from 'os';
 import { chmodSync, realpathSync } from 'fs';
 
-function isInstalledVersionCompatible(installedVersion, channel) {
+export function isInstalledVersionCompatible(installedVersion, channel) {
   const normalized = channel.trim().replace(/\.x$/i, '');
   if (!normalized) return true;
   if (normalized.includes('.')) {

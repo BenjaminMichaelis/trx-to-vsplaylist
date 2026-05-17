@@ -1,0 +1,70 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { isInstalledVersionCompatible } from '../src/setup-dotnet.js';
+
+describe('isInstalledVersionCompatible', () => {
+  describe('exact minor channel (e.g. "10.0")', () => {
+    it('matches when installed version equals the channel', () => {
+      assert.ok(isInstalledVersionCompatible('10.0', '10.0'));
+    });
+
+    it('matches when installed version is a patch release of the channel', () => {
+      assert.ok(isInstalledVersionCompatible('10.0.3', '10.0'));
+      assert.ok(isInstalledVersionCompatible('10.0.100', '10.0'));
+    });
+
+    it('does not match a different minor version', () => {
+      assert.ok(!isInstalledVersionCompatible('10.1.0', '10.0'));
+      assert.ok(!isInstalledVersionCompatible('9.0.0', '10.0'));
+    });
+  });
+
+  describe('major-only channel (e.g. "10")', () => {
+    it('matches any 10.x.y installed version', () => {
+      assert.ok(isInstalledVersionCompatible('10.0.0', '10'));
+      assert.ok(isInstalledVersionCompatible('10.0.3', '10'));
+      assert.ok(isInstalledVersionCompatible('10.5.2', '10'));
+    });
+
+    it('does not match a different major version', () => {
+      assert.ok(!isInstalledVersionCompatible('9.0.0', '10'));
+      assert.ok(!isInstalledVersionCompatible('11.0.0', '10'));
+    });
+  });
+
+  describe('.x suffix channel (e.g. "10.x" or "10.0.x")', () => {
+    it('strips .x suffix before comparing — major channel', () => {
+      assert.ok(isInstalledVersionCompatible('10.0.0', '10.x'));
+      assert.ok(isInstalledVersionCompatible('10.5.2', '10.x'));
+    });
+
+    it('strips .x suffix — minor channel', () => {
+      assert.ok(isInstalledVersionCompatible('10.0.0', '10.0.x'));
+      assert.ok(isInstalledVersionCompatible('10.0.100', '10.0.x'));
+    });
+
+    it('does not match wrong major when using .x suffix', () => {
+      assert.ok(!isInstalledVersionCompatible('9.0.0', '10.x'));
+    });
+  });
+
+  describe('empty / blank channel', () => {
+    it('returns true for empty string (no constraint)', () => {
+      assert.ok(isInstalledVersionCompatible('10.0.0', ''));
+    });
+
+    it('returns true for whitespace-only channel', () => {
+      assert.ok(isInstalledVersionCompatible('10.0.0', '   '));
+    });
+  });
+
+  describe('mismatch cases', () => {
+    it('returns false when major differs', () => {
+      assert.ok(!isInstalledVersionCompatible('8.0.0', '10.0'));
+    });
+
+    it('returns false when minor differs in minor channel', () => {
+      assert.ok(!isInstalledVersionCompatible('10.1.0', '10.0'));
+    });
+  });
+});

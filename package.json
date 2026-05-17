@@ -2,12 +2,15 @@
   "name": "trx-to-vsplaylist-action",
   "version": "2.0.0",
   "description": "Convert TRX test result files to VS Test playlist files",
+  "author": "BenjaminMichaelis",
+  "license": "MIT",
   "type": "module",
   "private": true,
   "scripts": {
     "package": "npx rimraf ./dist && npx rollup --config rollup.config.js",
+    "package:watch": "npx rollup --config rollup.config.js --watch",
     "build": "npm run package",
-    "lint": "eslint src/ --max-warnings 0",
+    "lint": "eslint src/ __tests__/ --max-warnings 0",
     "test": "node --test",
     "all": "npm run lint && npm run test && npm run package"
   },
