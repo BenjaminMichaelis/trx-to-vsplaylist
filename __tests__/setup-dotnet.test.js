@@ -7,11 +7,15 @@ import {
 
 describe('normalizeDotnetChannel', () => {
   it('normalizes major wildcard channels', () => {
-    assert.equal(normalizeDotnetChannel('10.x'), '10');
+    assert.equal(normalizeDotnetChannel('10.x'), '10.0');
   });
 
   it('normalizes minor wildcard channels', () => {
     assert.equal(normalizeDotnetChannel('10.0.x'), '10.0');
+  });
+
+  it('keeps concrete major channels unchanged', () => {
+    assert.equal(normalizeDotnetChannel('10'), '10');
   });
 
   it('trims whitespace while normalizing', () => {
@@ -50,9 +54,9 @@ describe('isInstalledVersionCompatible', () => {
   });
 
   describe('.x suffix channel (e.g. "10.x" or "10.0.x")', () => {
-    it('strips .x suffix before comparing — major channel', () => {
+    it('normalizes major wildcard to a concrete minor channel', () => {
       assert.ok(isInstalledVersionCompatible('10.0.0', '10.x'));
-      assert.ok(isInstalledVersionCompatible('10.5.2', '10.x'));
+      assert.ok(isInstalledVersionCompatible('10.0.5', '10.x'));
     });
 
     it('strips .x suffix — minor channel', () => {
@@ -62,6 +66,10 @@ describe('isInstalledVersionCompatible', () => {
 
     it('does not match wrong major when using .x suffix', () => {
       assert.ok(!isInstalledVersionCompatible('9.0.0', '10.x'));
+    });
+
+    it('does not match a different minor when using major wildcard syntax', () => {
+      assert.ok(!isInstalledVersionCompatible('10.1.0', '10.x'));
     });
   });
 

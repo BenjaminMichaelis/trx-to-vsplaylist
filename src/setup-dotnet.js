@@ -19,7 +19,11 @@ export function isInstalledVersionCompatible(installedVersion, channel) {
 }
 
 export function normalizeDotnetChannel(channel) {
-  return channel.trim().replace(/\.x$/i, '');
+  const trimmed = channel.trim();
+  if (/^\d+\.x$/iu.test(trimmed)) {
+    return trimmed.replace(/\.x$/iu, '.0');
+  }
+  return trimmed.replace(/\.x$/iu, '');
 }
 
 async function configureDotnetEnvironment(installDir) {
