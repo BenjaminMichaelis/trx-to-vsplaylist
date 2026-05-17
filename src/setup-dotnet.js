@@ -18,6 +18,22 @@ function isInstalledVersionCompatible(installedVersion, channel) {
   return installedVersion.split('.')[0] === normalized;
 }
 
+async function configureDotnetEnvironment(installDir) {
+  const dotnetRoot =
+    installDir ||
+    process.env.DOTNET_ROOT ||
+    path.dirname(await io.which('dotnet', true));
+
+  core.exportVariable('DOTNET_ROOT', dotnetRoot);
+  process.env.DOTNET_ROOT = dotnetRoot;
+
+  // On macOS arm64, also set DOTNET_ROOT_ARM64 so apphost-based tools can find runtime
+  if (os.platform() === 'darwin' && os.arch() === 'arm64') {
+    core.exportVariable('DOTNET_ROOT_ARM64', dotnetRoot);
+    process.env.DOTNET_ROOT_ARM64 = dotnetRoot;
+  }
+}
+
 export async function ensureDotnet() {
   const channel = core.getInput('dotnet-version') || '10.0';
 
@@ -29,6 +45,7 @@ export async function ensureDotnet() {
   if (dotnetVersion.exitCode === 0) {
     const installedVersion = dotnetVersion.stdout.trim();
     if (isInstalledVersionCompatible(installedVersion, channel)) {
+      await configureDotnetEnvironment();
       core.info(
         `.NET SDK already available (${installedVersion}) for requested channel ${channel}`
       );
@@ -73,15 +90,7 @@ export async function ensureDotnet() {
   }
 
   core.addPath(installDir);
-  core.exportVariable('DOTNET_ROOT', installDir);
-  // Also set process.env so spawned child processes in this same action run inherit it
-  process.env.DOTNET_ROOT = installDir;
-
-  // On macOS arm64, also set DOTNET_ROOT_ARM64 so the dotnet binary can find the runtime
-  if (os.platform() === 'darwin' && os.arch() === 'arm64') {
-    core.exportVariable('DOTNET_ROOT_ARM64', installDir);
-    process.env.DOTNET_ROOT_ARM64 = installDir;
-  }
+  await configureDotnetEnvironment(installDir);
 
   core.info(`.NET SDK installed to ${installDir}`);
 }
