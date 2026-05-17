@@ -23,13 +23,38 @@ function listFiles(dir, recursive) {
 }
 
 function globToRegex(absForwardPattern) {
+  const convertPart = (part) => {
+    let regex = '';
+    for (let i = 0; i < part.length; i++) {
+      const char = part[i];
+      if (char === '*') {
+        regex += '[^/]*';
+      } else if (char === '?') {
+        regex += '[^/]';
+      } else if (char === '[') {
+        const end = part.indexOf(']', i + 1);
+        if (end > i + 1) {
+          let classContent = part.slice(i + 1, end);
+          if (classContent[0] === '!') {
+            classContent = `^${classContent.slice(1)}`;
+          }
+          classContent = classContent
+            .replace(/\\/g, '\\\\')
+            .replace(/]/g, '\\]');
+          regex += `[${classContent}]`;
+          i = end;
+        } else {
+          regex += '\\[';
+        }
+      } else {
+        regex += /[.+^${}()|\\]/.test(char) ? `\\${char}` : char;
+      }
+    }
+    return regex;
+  };
+
   // Split on ** first, then handle * and ? per segment to avoid control chars
-  const escapedParts = absForwardPattern.split('**').map((part) =>
-    part
-      .replace(/[.+^${}()|[\]\\]/g, '\\$&') // escape regex special chars
-      .replace(/\*/g, '[^/]*') // * matches within a path segment
-      .replace(/\?/g, '[^/]') // ? matches a single char within a segment
-  );
+  const escapedParts = absForwardPattern.split('**').map(convertPart);
   // Re-join with .* which is what ** matches (any chars including /)
   return new RegExp(
     `^${escapedParts.join('.*')}$`,

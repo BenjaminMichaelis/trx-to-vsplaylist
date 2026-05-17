@@ -6,17 +6,41 @@ import path from 'path';
 import os from 'os';
 import { chmodSync } from 'fs';
 
+function isInstalledVersionCompatible(installedVersion, channel) {
+  const normalized = channel.trim().replace(/\.x$/i, '');
+  if (!normalized) return true;
+  if (normalized.includes('.')) {
+    return (
+      installedVersion === normalized ||
+      installedVersion.startsWith(`${normalized}.`)
+    );
+  }
+  return installedVersion.split('.')[0] === normalized;
+}
+
 export async function ensureDotnet() {
-  // Check if dotnet is already on PATH
-  try {
-    await exec.exec('dotnet', ['--version'], { silent: true });
-    core.info('.NET SDK already available');
-    return;
-  } catch {
+  const channel = core.getInput('dotnet-version') || '10.0';
+
+  // Check if dotnet is already on PATH and matches the requested channel
+  const dotnetVersion = await exec.getExecOutput('dotnet', ['--version'], {
+    silent: true,
+    ignoreReturnCode: true,
+  });
+  if (dotnetVersion.exitCode === 0) {
+    const installedVersion = dotnetVersion.stdout.trim();
+    if (isInstalledVersionCompatible(installedVersion, channel)) {
+      core.info(
+        `.NET SDK already available (${installedVersion}) for requested channel ${channel}`
+      );
+      return;
+    }
+    core.info(
+      `.NET SDK ${installedVersion} does not match requested channel ${channel}, installing...`
+    );
+  } else {
     core.info('.NET SDK not found, installing...');
   }
 
-  const channel = core.getInput('dotnet-version') || '10.0';
   const installDir = path.join(process.env.RUNNER_TEMP, 'dotnet');
 
   if (os.platform() === 'win32') {
@@ -26,7 +50,7 @@ export async function ensureDotnet() {
     );
     const pwsh =
       (await io.which('pwsh', false)) || (await io.which('powershell', true));
-    await exec.exec(`"${pwsh}"`, [
+    await exec.exec(pwsh, [
       '-NoProfile',
       '-NonInteractive',
       '-ExecutionPolicy',
