@@ -107,7 +107,8 @@ jobs:
 | Output | Description |
 |--------|-------------|
 | `playlist-path` | Path to the generated playlist file (when using merge mode with single output) |
-| `playlist-paths` | Colon-separated list of paths to generated playlist files (when using separate mode) |
+| `playlist-paths` | Colon-separated list of generated playlist paths for separate mode (relative when possible) |
+| `playlist-paths-json` | JSON array of generated playlist paths for separate mode (platform-safe for absolute Windows paths) |
 | `artifact-dir` | Directory containing the generated playlist file(s) |
 
 ## Test Outcomes

@@ -128,6 +128,17 @@ export async function resolveTrxFiles(pattern) {
   return files;
 }
 
+export function toActionOutputPath(
+  filePath,
+  { cwd = process.cwd(), pathModule = path } = {}
+) {
+  const relative = pathModule.relative(cwd, filePath);
+  if (relative && !pathModule.isAbsolute(relative)) {
+    return relative;
+  }
+  return filePath;
+}
+
 export async function convert() {
   const trxPattern = core.getInput('trx-file-path', { required: true });
   const outputDirectory = core.getInput('output-directory');
@@ -207,7 +218,9 @@ export async function convert() {
         'Info: No playlist files were created (likely due to --skip-empty and no matching tests)'
       );
     }
-    core.setOutput('playlist-paths', freshPlaylists.join(':'));
+    const playlistOutputPaths = freshPlaylists.map((f) => toActionOutputPath(f));
+    core.setOutput('playlist-paths', playlistOutputPaths.join(':'));
+    core.setOutput('playlist-paths-json', JSON.stringify(freshPlaylists));
   } else {
     if (
       outputFile &&

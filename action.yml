@@ -58,7 +58,9 @@ outputs:
   playlist-path:
     description: 'Path to the generated playlist file (when using merge mode with single output)'
   playlist-paths:
-    description: 'Colon-separated list of paths to generated playlist files (when using separate mode or multiple outputs)'
+    description: 'Colon-separated list of generated playlist paths (relative when possible in separate mode)'
+  playlist-paths-json:
+    description: 'JSON array of generated playlist paths (platform-safe for Windows absolute paths)'
   artifact-dir:
     description: 'Directory containing the generated playlist file(s)'
 

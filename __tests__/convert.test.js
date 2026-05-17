@@ -2,7 +2,11 @@ import { afterEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';
 import path from 'path';
-import { globToRegex, resolveTrxFiles } from '../src/convert.js';
+import {
+  globToRegex,
+  resolveTrxFiles,
+  toActionOutputPath,
+} from '../src/convert.js';
 
 // globToRegex expects an absolute forward-slash path pattern.
 // We use a fake absolute root that works on all platforms for testing.
@@ -165,5 +169,28 @@ describe('resolveTrxFiles', () => {
       path.join(tempDir, 'TestResults*', 'sample.trx')
     );
     assert.deepEqual(files, [path.resolve(trxFile)]);
+  });
+});
+
+describe('toActionOutputPath', () => {
+  it('returns a relative path when file is under cwd', () => {
+    const result = toActionOutputPath(path.join(process.cwd(), 'out.playlist'));
+    assert.equal(result, 'out.playlist');
+  });
+
+  it('keeps absolute windows paths when they are on a different drive', () => {
+    const result = toActionOutputPath('E:\\artifacts\\out.playlist', {
+      cwd: 'D:\\repo',
+      pathModule: path.win32,
+    });
+    assert.equal(result, 'E:\\artifacts\\out.playlist');
+  });
+
+  it('converts same-drive windows absolute paths to relative', () => {
+    const result = toActionOutputPath('D:\\repo\\playlists\\one.playlist', {
+      cwd: 'D:\\repo',
+      pathModule: path.win32,
+    });
+    assert.equal(result, 'playlists\\one.playlist');
   });
 });

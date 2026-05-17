@@ -185,7 +185,7 @@ core.saveState('toolPath', toolPath);
 ```
 
 ### Phase 3: Convert TRX to Playlist
-Port bash logic to JS using `@actions/glob` + `@actions/exec` (see Section 5).
+Port bash logic to JS using a custom file-system glob resolver + `@actions/exec` (see Section 5).
 
 ### Phase 4: Upload Artifact
 Use `@actions/artifact` `DefaultArtifactClient` (see Section 6).
@@ -198,16 +198,15 @@ Use `@actions/artifact` `DefaultArtifactClient` (see Section 6).
 
 **Rationale:**
 1. GitHub docs recommend JS actions be pure JavaScript
-2. `@actions/glob` handles all glob patterns the bash script uses (including `**`)
+2. `resolveTrxFiles()` + `globToRegex()` handle the bash glob behavior (including `**`) across platforms
 3. The bash logic is ~80 lines of file matching + arg building — straightforward to port
 4. `path.join()`, `path.basename()`, `path.dirname()` handle cross-platform paths
-5. Testable with Jest by mocking `@actions/exec` and `@actions/glob`
+5. Testable with `node --test` by covering `globToRegex()`/`resolveTrxFiles()` and CLI arg assembly
 6. No bash dependency — works on Windows runners without Git Bash quirks
 
 ### Ported Logic (`src/convert.js`)
 
 ```js
-import * as glob from '@actions/glob';
 import * as exec from '@actions/exec';
 import * as core from '@actions/core';
 import fs from 'fs';
@@ -291,7 +290,7 @@ export async function convert() {
 
 ### Glob Backward Compatibility (`resolveTrxFiles`)
 
-The bash script handles space-separated literal paths and space-separated globs. `@actions/glob` uses **newline-separated** patterns. We pre-process for compatibility:
+The bash script handles space-separated literal paths and space-separated globs. We keep compatibility by trying the full pattern first, then falling back to space-split legacy glob parts when needed:
 
 ```js
 async function resolveTrxFiles(pattern) {
@@ -305,10 +304,16 @@ async function resolveTrxFiles(pattern) {
     }
     return paths.map(p => path.resolve(p));
   }
-  // Glob: convert space-separated patterns to newline-separated for @actions/glob
-  const patterns = pattern.split(/\s+/).filter(Boolean);
-  const globber = await glob.create(patterns.join('\n'));
-  return globber.glob();
+  // Try full pattern first (supports paths with spaces)
+  let files = await globPattern(pattern);
+
+  // Legacy fallback: split on spaces when no files matched
+  if (files.length === 0 && /\s/.test(pattern)) {
+    for (const p of pattern.split(/\s+/).filter(Boolean)) {
+      files = files.concat(await globPattern(p));
+    }
+  }
+  return files;
 }
 ```
 
@@ -534,7 +539,7 @@ The new action.yml preserves `tool-version:` before `outputs:` with the same YAM
 
 ## 14. Gotchas and Edge Cases
 
-1. **Glob separators**: `@actions/glob` uses newlines, not spaces. `resolveTrxFiles()` handles conversion.
+1. **Glob compatibility**: `resolveTrxFiles()` first evaluates the full pattern, then falls back to legacy space-split glob parts for backward compatibility.
 2. **`@actions/artifact` v2 + GITHUB_TOKEN**: Token is automatically available in Actions environment. No config needed.
 3. **Bundle size**: `dist/index.js` ≈ 1-2MB (artifact + HTTP deps). Normal for JS actions. `dist/post.js` ≈ 50KB.
 4. **`@rollup/plugin-json`**: Required because `@actions/artifact` imports JSON files. Without it, Rollup fails on `.json` imports.
