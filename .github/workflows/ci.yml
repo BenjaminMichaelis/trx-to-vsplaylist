@@ -89,6 +89,21 @@ jobs:
           </TestRun>
           EOF
 
+      - name: Setup .NET SDK
+        id: setup-dotnet
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install trx-to-vsplaylist tool
+        id: install-tool
+        shell: bash
+        run: |
+          TOOL_PATH="$RUNNER_TEMP/.dotnet-tools-trx-to-vsplaylist"
+          dotnet tool install --tool-path "$TOOL_PATH" trx-to-vsplaylist --version 1.3.0 --source https://api.nuget.org/v3/index.json || \
+          dotnet tool update --tool-path "$TOOL_PATH" trx-to-vsplaylist --version 1.3.0 --source https://api.nuget.org/v3/index.json
+          echo "$TOOL_PATH" >> "$GITHUB_PATH"
+
       - name: Test Local Action
         id: test-action
         uses: ./
