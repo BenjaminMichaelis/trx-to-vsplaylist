@@ -29,10 +29,10 @@ jobs:
           Write-Host "Latest NuGet package version: $latestVersion"
           echo "latest=$latestVersion" >> $env:GITHUB_OUTPUT
 
-      - name: Get current version from action.yml
+      - name: Get current version from action input default
         id: get_current
         run: |
-          CURRENT=$(grep -oP 'trx-to-vsplaylist --version \K[0-9.]+' action.yml | head -1)
+          CURRENT=$(sed -n '/^  tool-version:/,/^outputs:/p' action.yml | grep -oP "default:\s*'\K[0-9.]+" | head -1)
           echo "Current version: $CURRENT"
           echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
 
@@ -50,12 +50,13 @@ jobs:
             echo "update=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Update action.yml with new version
+      - name: Update action input default with new version
         if: steps.check.outputs.update == 'true'
         env:
           LATEST: ${{ steps.get_version.outputs.latest }}
         run: |
-          sed -i "s/trx-to-vsplaylist --version [0-9][0-9.]*/trx-to-vsplaylist --version $LATEST/g" action.yml
+          sed -i "/^  tool-version:/,/^  dotnet-version:/ s/default: '[0-9][0-9.]*'/default: '$LATEST'/" action.yml
+          sed -i "s/| \`tool-version\`\(.*\)\`[0-9][0-9.]*\` |$/| \`tool-version\`\1\`$LATEST\` |/" README.md
 
       - name: Create Pull Request with changes
         if: steps.check.outputs.update == 'true'
@@ -89,9 +90,9 @@ jobs:
           fi
           
           git checkout -b "$BRANCH_NAME"
-          git add action.yml
+          git add action.yml README.md
           git commit -m "chore: bump trx-to-vsplaylist to $LATEST"
           git push origin "$BRANCH_NAME"
           gh pr create -B "$DEFAULT_BRANCH" -H "$BRANCH_NAME" \
             --title "chore: bump trx-to-vsplaylist to $LATEST" \
-            --body "Automated PR to update trx-to-vsplaylist tool version in action.yml to $LATEST"
+            --body "Automated PR to update trx-to-vsplaylist tool version used by the published action to $LATEST"
