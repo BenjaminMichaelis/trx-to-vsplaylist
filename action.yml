@@ -27,7 +27,8 @@ inputs:
     default: 'Failed'
   artifact-name:
     description: >
-      Name for the uploaded artifact. If not specified, defaults to 'test-results-<run_id>'.
+      Name for the uploaded artifact. If not specified, a unique default name is generated
+      from the run metadata.
     required: false
   skip-empty:
     description: >
