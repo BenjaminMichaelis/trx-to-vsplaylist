@@ -13,8 +13,9 @@ export function resolveArtifactName({
   env = process.env,
   createSuffix = randomUUID,
 }: ArtifactNameOptions = {}): string {
-  if (inputName.trim()) {
-    return inputName;
+  const trimmedInputName = inputName.trim();
+  if (trimmedInputName) {
+    return trimmedInputName;
   }
 
   const runId = env.GITHUB_RUN_ID?.trim() || 'local';
