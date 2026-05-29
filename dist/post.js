@@ -28101,19 +28101,21 @@ function getState(name) {
 }
 
 function cleanup() {
-  const toolPath = getState('toolPath');
-  if (!toolPath) {
-    debug('No tool path saved — nothing to clean up');
-    return;
-  }
-  try {
-    if (fs__default.existsSync(toolPath)) {
-      fs__default.rmSync(toolPath, { recursive: true, force: true });
-      info(`Cleaned up tool directory: ${toolPath}`);
+    const toolPath = getState('toolPath');
+    if (!toolPath) {
+        debug('No tool path saved — nothing to clean up');
+        return;
     }
-  } catch (err) {
-    warning(`Failed to clean up tool directory ${toolPath}: ${err.message}`);
-  }
+    try {
+        if (fs__default.existsSync(toolPath)) {
+            fs__default.rmSync(toolPath, { recursive: true, force: true });
+            info(`Cleaned up tool directory: ${toolPath}`);
+        }
+    }
+    catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        warning(`Failed to clean up tool directory ${toolPath}: ${msg}`);
+    }
 }
 
 cleanup();
