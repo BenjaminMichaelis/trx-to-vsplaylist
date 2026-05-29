@@ -10,7 +10,7 @@ Convert a single TRX file to a playlist:
 
 ```yaml
 - name: Convert TRX to Playlist
-  uses: BenjaminMichaelis/trx-to-vsplaylist@v2
+  uses: BenjaminMichaelis/trx-to-vsplaylist@v4
   with:
     trx-file-path: './TestResults/results.trx'
 ```
@@ -21,7 +21,7 @@ Merge multiple TRX files into a single playlist (great for multi-framework proje
 
 ```yaml
 - name: Convert TRX to Playlist
-  uses: BenjaminMichaelis/trx-to-vsplaylist@v2
+  uses: BenjaminMichaelis/trx-to-vsplaylist@v4
   with:
     trx-file-path: './TestResults/*.trx'  # Glob pattern for all TRX files
     test-outcomes: 'Failed'
@@ -33,7 +33,7 @@ Create individual playlists for each TRX file:
 
 ```yaml
 - name: Convert TRX to Playlist
-  uses: BenjaminMichaelis/trx-to-vsplaylist@v2
+  uses: BenjaminMichaelis/trx-to-vsplaylist@v4
   with:
     trx-file-path: './TestResults/*.trx'
     output-directory: './playlists'
@@ -69,7 +69,7 @@ jobs:
     # Merge all TRX files into a single playlist of failed tests
     - name: Create Merged Failure Playlist
       if: always() # Run even if tests fail
-      uses: BenjaminMichaelis/trx-to-vsplaylist@v2
+      uses: BenjaminMichaelis/trx-to-vsplaylist@v4
       with:
         trx-file-path: './TestResults/*.trx'
         test-outcomes: 'Failed'
@@ -78,7 +78,7 @@ jobs:
     # Create separate playlists for each TRX file
     - name: Create Individual Playlists  
       if: always()
-      uses: BenjaminMichaelis/trx-to-vsplaylist@v2
+      uses: BenjaminMichaelis/trx-to-vsplaylist@v4
       with:
         trx-file-path: './TestResults/*.trx'
         output-directory: './individual-playlists'
