@@ -12,9 +12,19 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test-action:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -109,7 +119,7 @@ jobs:
         uses: ./
         with:
           trx-file-path: './TestResults/sample.trx'
-          artifact-name: 'test-playlist-basic'
+          artifact-name: 'test-playlist-basic-${{ runner.os }}'
 
       - name: Verify playlist file was created
         run: |
@@ -140,7 +150,7 @@ jobs:
           trx-file-path: './TestResults/sample.trx'
           output-directory: './custom-playlists'
           test-outcomes: 'Failed,Passed'
-          artifact-name: 'test-playlist-custom'
+          artifact-name: 'test-playlist-custom-${{ runner.os }}'
 
       - name: Verify custom playlist file was created
         run: |
@@ -172,7 +182,7 @@ jobs:
           trx-file-path: './TestResults/comprehensive.trx'
           output-directory: './passed-only'
           test-outcomes: 'Passed'
-          artifact-name: 'test-playlist-passed'
+          artifact-name: 'test-playlist-passed-${{ runner.os }}'
 
       - name: Verify passed-only playlist
         run: |
@@ -198,7 +208,7 @@ jobs:
           trx-file-path: './TestResults/comprehensive.trx'
           output-directory: './notexecuted-only'
           test-outcomes: 'NotExecuted'
-          artifact-name: 'test-playlist-notexecuted'
+          artifact-name: 'test-playlist-notexecuted-${{ runner.os }}'
 
       - name: Verify NotExecuted-only playlist
         run: |
@@ -224,7 +234,7 @@ jobs:
           trx-file-path: './TestResults/comprehensive.trx'
           output-directory: './inconclusive-only'
           test-outcomes: 'Inconclusive'
-          artifact-name: 'test-playlist-inconclusive'
+          artifact-name: 'test-playlist-inconclusive-${{ runner.os }}'
 
       - name: Verify Inconclusive-only playlist
         run: |
@@ -250,7 +260,7 @@ jobs:
           trx-file-path: './TestResults/comprehensive.trx'
           output-directory: './timeout-only'
           test-outcomes: 'Timeout'
-          artifact-name: 'test-playlist-timeout'
+          artifact-name: 'test-playlist-timeout-${{ runner.os }}'
 
       - name: Verify Timeout-only playlist
         run: |
@@ -277,7 +287,7 @@ jobs:
           trx-file-path: './TestResults/comprehensive.trx'
           output-directory: './all-outcomes'
           test-outcomes: 'Failed,Passed,NotExecuted,Inconclusive,Timeout'
-          artifact-name: 'test-playlist-all'
+          artifact-name: 'test-playlist-all-${{ runner.os }}'
 
       - name: Verify all-outcomes playlist
         run: |
@@ -307,7 +317,7 @@ jobs:
           trx-file-path: './TestResults/comprehensive.trx'
           output-directory: './whitespace-test'
           test-outcomes: ' Failed , Passed , NotExecuted '
-          artifact-name: 'test-playlist-whitespace'
+          artifact-name: 'test-playlist-whitespace-${{ runner.os }}'
 
       - name: Verify whitespace handling
         run: |
@@ -337,7 +347,7 @@ jobs:
           trx-file-path: './TestResults/*.trx'
           output-directory: './glob-merged'
           test-outcomes: 'Failed'
-          artifact-name: 'test-playlist-glob-merged'
+          artifact-name: 'test-playlist-glob-merged-${{ runner.os }}'
 
       - name: Verify glob pattern creates merged playlist
         run: |
@@ -372,7 +382,7 @@ jobs:
           trx-file-path: './Test Results/*.trx'
           output-directory: './glob-spaces-merged'
           test-outcomes: 'Failed'
-          artifact-name: 'test-playlist-glob-spaces'
+          artifact-name: 'test-playlist-glob-spaces-${{ runner.os }}'
 
       - name: Verify spaced glob pattern creates merged playlist
         run: |
@@ -397,7 +407,7 @@ jobs:
           output-directory: './glob-separate'
           separate: true
           test-outcomes: 'Failed'
-          artifact-name: 'test-playlist-glob-separate'
+          artifact-name: 'test-playlist-glob-separate-${{ runner.os }}'
 
       - name: Verify glob pattern creates separate playlists
         run: |
@@ -444,7 +454,7 @@ jobs:
           output-directory: './skip-empty-test'
           test-outcomes: 'Pending' # No test in the TRX has this outcome
           skip-empty: true
-          artifact-name: 'test-playlist-skipempty'
+          artifact-name: 'test-playlist-skipempty-${{ runner.os }}'
 
       - name: Verify skip-empty prevents empty playlist
         run: |
@@ -469,7 +479,7 @@ jobs:
           output-directory: './stale-merge-output'
           test-outcomes: 'Pending' # No test in the TRX has this outcome
           skip-empty: true
-          artifact-name: 'test-playlist-stale-merge'
+          artifact-name: 'test-playlist-stale-merge-${{ runner.os }}'
 
       - name: Verify stale merge file is not treated as fresh output
         run: |
@@ -495,7 +505,7 @@ jobs:
           separate: true
           test-outcomes: 'Pending' # No test in the TRX has this outcome
           skip-empty: true
-          artifact-name: 'test-playlist-stale-separate'
+          artifact-name: 'test-playlist-stale-separate-${{ runner.os }}'
 
       - name: Verify stale separate files are not treated as fresh outputs
         run: |
@@ -514,7 +524,7 @@ jobs:
           trx-file-path: './TestResults/sample.trx'
           output-directory: './output-test'
           test-outcomes: 'Failed'
-          artifact-name: 'test-outputs-single'
+          artifact-name: 'test-outputs-single-${{ runner.os }}'
 
       - name: Verify single file outputs
         run: |
@@ -543,7 +553,7 @@ jobs:
           trx-file-path: './TestResults/*.trx'
           output-directory: './merge-output-test'
           test-outcomes: 'Failed'
-          artifact-name: 'test-outputs-merge'
+          artifact-name: 'test-outputs-merge-${{ runner.os }}'
 
       - name: Verify merge outputs
         run: |
@@ -566,7 +576,7 @@ jobs:
           output-directory: './separate-output-test'
           separate: true
           test-outcomes: 'Failed'
-          artifact-name: 'test-outputs-separate'
+          artifact-name: 'test-outputs-separate-${{ runner.os }}'
 
       - name: Verify separate mode outputs
         run: |
@@ -581,7 +591,14 @@ jobs:
           fi
 
   test-error-conditions:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -592,7 +609,7 @@ jobs:
         continue-on-error: true
         with:
           trx-file-path: './NonExistent/missing.trx'
-          artifact-name: 'test-playlist-error'
+          artifact-name: 'test-playlist-error-${{ runner.os }}'
 
       - name: Verify missing TRX file error handling
         run: |
@@ -605,7 +622,14 @@ jobs:
           fi
 
   test-multi-trx-glob:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -647,7 +671,7 @@ jobs:
           trx-file-path: './TestResults/*.trx'
           output-directory: './merged-output'
           test-outcomes: 'Failed'
-          artifact-name: 'test-playlist-merged'
+          artifact-name: 'test-playlist-merged-${{ runner.os }}'
 
       - name: Verify merged playlist contains both tests
         run: |
@@ -679,7 +703,7 @@ jobs:
           output-directory: './separate-output'
           separate: true
           test-outcomes: 'Failed'
-          artifact-name: 'test-playlist-separate'
+          artifact-name: 'test-playlist-separate-${{ runner.os }}'
 
       - name: Verify separate playlists created
         run: |
@@ -736,7 +760,14 @@ jobs:
           echo "✅ All playlist artifacts are present and not empty"
 
   test-multi-framework:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -808,7 +839,7 @@ jobs:
           trx-file-path: './TestResults/net*.trx'
           output-directory: './multi-framework'
           test-outcomes: 'Failed'
-          artifact-name: 'multi-framework-merged'
+          artifact-name: 'multi-framework-merged-${{ runner.os }}'
 
       - name: Verify multi-framework merge with deduplication
         run: |
@@ -847,7 +878,7 @@ jobs:
           output-directory: './multi-framework-separate'
           separate: true
           test-outcomes: 'Failed'
-          artifact-name: 'multi-framework-separate'
+          artifact-name: 'multi-framework-separate-${{ runner.os }}'
 
       - name: Verify separate framework playlists
         run: |

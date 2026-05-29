@@ -21,5 +21,11 @@ Thumbs.db
 # Build artifacts
 bin/
 obj/
-dist/
 node_modules/
+
+# dist/ is intentionally tracked — GitHub Actions require bundled dist in the repo
+# But exclude source maps (not needed at runtime)
+dist/*.map
+
+# Local action development
+.env

@@ -99,13 +99,16 @@ jobs:
 | `artifact-name` | Name for the uploaded artifact. If not specified, defaults to `test-results-{run_id}`. | No | `test-results-{run_id}` (auto-generated) |
 | `skip-empty` | Skip writing out empty playlist files. If true, empty playlists will not be created. | No | `true` |
 | `separate` | When multiple TRX files are found, create separate playlist files for each instead of merging into one. When `false` (default), results are merged into a single playlist (`merged.playlist` for multiple inputs) in the output directory, or alongside the first TRX file if no output directory is set. | No | `false` |
+| `tool-version` | Version of the `trx-to-vsplaylist` .NET tool to install before conversion. | No | `2.0.0` |
+| `dotnet-version` | .NET SDK channel to install (e.g. `10.0`). Installation is skipped when a compatible SDK matching the requested channel is already available on PATH; otherwise the requested SDK channel is installed automatically. | No | `10.0` |
 
 ## Outputs
 
 | Output | Description |
 |--------|-------------|
 | `playlist-path` | Path to the generated playlist file (when using merge mode with single output) |
-| `playlist-paths` | Colon-separated list of paths to generated playlist files (when using separate mode) |
+| `playlist-paths` | Colon-separated list of generated playlist paths for separate mode (relative when possible) |
+| `playlist-paths-json` | JSON array of generated playlist paths for separate mode (platform-safe for absolute Windows paths) |
 | `artifact-dir` | Directory containing the generated playlist file(s) |
 
 ## Test Outcomes
