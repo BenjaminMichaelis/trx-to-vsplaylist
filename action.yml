@@ -27,7 +27,8 @@ inputs:
     default: 'Failed'
   artifact-name:
     description: >
-      Name for the uploaded artifact. If not specified, defaults to 'test-results-<run_id>'.
+      Name for the uploaded artifact. If not specified, a unique default name is generated
+      from the run metadata.
     required: false
   skip-empty:
     description: >
@@ -45,7 +46,7 @@ inputs:
     description: >
       Version of trx-to-vsplaylist .NET tool to install.
     required: false
-    default: '1.3.0'
+    default: '2.0.0'
   dotnet-version:
     description: >
       .NET SDK channel to install (e.g. '10.0'). Installation is skipped when a

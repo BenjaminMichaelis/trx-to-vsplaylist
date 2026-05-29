@@ -57,6 +57,7 @@ jobs:
         run: |
           sed -i "/^  tool-version:/,/^  dotnet-version:/ s/default: '[0-9][0-9.]*'/default: '$LATEST'/" action.yml
           sed -i "s/| \`tool-version\`\(.*\)\`[0-9][0-9.]*\` |$/| \`tool-version\`\1\`$LATEST\` |/" README.md
+          sed -i "s/trx-to-vsplaylist --version [0-9][0-9.]*/trx-to-vsplaylist --version $LATEST/g" .github/workflows/ci.yml
 
       - name: Create Pull Request with changes
         if: steps.check.outputs.update == 'true'
@@ -90,7 +91,7 @@ jobs:
           fi
           
           git checkout -b "$BRANCH_NAME"
-          git add action.yml README.md
+          git add action.yml README.md .github/workflows/ci.yml
           git commit -m "chore: bump trx-to-vsplaylist to $LATEST"
           git push origin "$BRANCH_NAME"
           gh pr create -B "$DEFAULT_BRANCH" -H "$BRANCH_NAME" \

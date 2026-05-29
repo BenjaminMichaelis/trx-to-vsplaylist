@@ -1,0 +1,79 @@
+name: Dependabot dist sync
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  sync-dist:
+    runs-on: ubuntu-latest
+    if: |
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.repository == 'BenjaminMichaelis/trx-to-vsplaylist' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Validate changed files
+        id: changed-files
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              per_page: 100
+            })
+
+            const allowed = new Set(['package.json', 'package-lock.json'])
+            const changed = files.map(f => f.filename)
+            const disallowed = changed.filter(name => !allowed.has(name))
+
+            core.info(`Changed files: ${changed.join(', ')}`)
+
+            if (disallowed.length > 0) {
+              core.notice(`Skipping dist sync. Non-dependency files changed: ${disallowed.join(', ')}`)
+              core.setOutput('should-sync', 'false')
+            } else {
+              core.setOutput('should-sync', 'true')
+            }
+
+      - name: Checkout Dependabot branch
+        if: steps.changed-files.outputs.should-sync == 'true'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+
+      - name: Setup Node.js
+        if: steps.changed-files.outputs.should-sync == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.changed-files.outputs.should-sync == 'true'
+        run: npm ci
+
+      - name: Build dist
+        if: steps.changed-files.outputs.should-sync == 'true'
+        run: npm run package
+
+      - name: Commit and push dist changes
+        if: steps.changed-files.outputs.should-sync == 'true'
+        run: |
+          if git diff --quiet -- dist/; then
+            echo "dist/ is already up to date."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist/
+          git commit -m "build: sync dist for dependabot"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}

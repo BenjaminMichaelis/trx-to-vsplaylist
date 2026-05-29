@@ -96,10 +96,10 @@ jobs:
 | `trx-file-path` | Path or glob pattern to the TRX file(s) to convert. Supports wildcards like `*.trx` or `**/TestResults/*.trx`. Multiple files will be merged by default. | Yes | - |
 | `output-directory` | Directory to write the output playlist file(s) to. If not specified, saves in the same directory as the first TRX file. | No | - |
 | `test-outcomes` | Test outcomes to include in the playlist (comma-separated). Accepts: Passed, Failed, NotExecuted, Inconclusive, Timeout, Pending | No | `Failed` |
-| `artifact-name` | Name for the uploaded artifact. If not specified, defaults to `test-results-{run_id}`. | No | `test-results-{run_id}` (auto-generated) |
+| `artifact-name` | Name for the uploaded artifact. If not specified, a unique default name is generated from the run metadata. | No | `test-results-{run_id}-[{run_attempt}-]{suffix}` (auto-generated; `run_attempt` included when available) |
 | `skip-empty` | Skip writing out empty playlist files. If true, empty playlists will not be created. | No | `true` |
 | `separate` | When multiple TRX files are found, create separate playlist files for each instead of merging into one. When `false` (default), results are merged into a single playlist (`merged.playlist` for multiple inputs) in the output directory, or alongside the first TRX file if no output directory is set. | No | `false` |
-| `tool-version` | Version of the `trx-to-vsplaylist` .NET tool to install before conversion. | No | `1.3.0` |
+| `tool-version` | Version of the `trx-to-vsplaylist` .NET tool to install before conversion. | No | `2.0.0` |
 | `dotnet-version` | .NET SDK channel to install (e.g. `10.0`). Installation is skipped when a compatible SDK matching the requested channel is already available on PATH; otherwise the requested SDK channel is installed automatically. | No | `10.0` |
 
 ## Outputs
