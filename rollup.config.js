@@ -16,6 +16,11 @@ const shared = {
 export default [
   {
     ...shared,
+    input: 'src/pre.ts',
+    output: { ...shared.output, file: 'dist/pre.js' },
+  },
+  {
+    ...shared,
     input: 'src/index.ts',
     output: { ...shared.output, file: 'dist/index.js' },
   },
