@@ -28,10 +28,11 @@ describe('normalizeDotnetChannel', () => {
 
 describe('getDotnetInstallScriptPath', () => {
   it('uses the runner temp directory and preserves the PowerShell extension', () => {
-    assert.equal(
-      getDotnetInstallScriptPath(path.join('runner-temp', 'work')),
-      path.join('runner-temp', 'work', 'dotnet-install.ps1')
-    );
+    const scriptPath = getDotnetInstallScriptPath(path.join('runner-temp', 'work'));
+    const nextScriptPath = getDotnetInstallScriptPath(path.join('runner-temp', 'work'));
+    assert.equal(path.dirname(scriptPath), path.join('runner-temp', 'work'));
+    assert.match(path.basename(scriptPath), /^[0-9a-f-]{36}\.ps1$/u);
+    assert.notEqual(scriptPath, nextScriptPath);
   });
 
   it('falls back to the operating system temp directory', (t) => {
@@ -45,10 +46,9 @@ describe('getDotnetInstallScriptPath', () => {
       }
     });
 
-    assert.equal(
-      getDotnetInstallScriptPath(),
-      path.join(os.tmpdir(), 'dotnet-install.ps1')
-    );
+    const scriptPath = getDotnetInstallScriptPath();
+    assert.equal(path.dirname(scriptPath), os.tmpdir());
+    assert.match(path.basename(scriptPath), /^[0-9a-f-]{36}\.ps1$/u);
   });
 });
 
