@@ -1,6 +1,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import os from 'os';
+import path from 'path';
 import {
+  getDotnetInstallScriptPath,
   isInstalledVersionCompatible,
   normalizeDotnetChannel,
 } from '../src/setup-dotnet.js';
@@ -20,6 +23,32 @@ describe('normalizeDotnetChannel', () => {
 
   it('trims whitespace while normalizing', () => {
     assert.equal(normalizeDotnetChannel(' 10.0.x '), '10.0');
+  });
+});
+
+describe('getDotnetInstallScriptPath', () => {
+  it('uses the runner temp directory and preserves the PowerShell extension', () => {
+    const scriptPath = getDotnetInstallScriptPath(path.join('runner-temp', 'work'));
+    const nextScriptPath = getDotnetInstallScriptPath(path.join('runner-temp', 'work'));
+    assert.equal(path.dirname(scriptPath), path.join('runner-temp', 'work'));
+    assert.match(path.basename(scriptPath), /^[0-9a-f-]{36}\.ps1$/u);
+    assert.notEqual(scriptPath, nextScriptPath);
+  });
+
+  it('falls back to the operating system temp directory', (t) => {
+    const runnerTemp = process.env.RUNNER_TEMP;
+    delete process.env.RUNNER_TEMP;
+    t.after(() => {
+      if (runnerTemp === undefined) {
+        delete process.env.RUNNER_TEMP;
+      } else {
+        process.env.RUNNER_TEMP = runnerTemp;
+      }
+    });
+
+    const scriptPath = getDotnetInstallScriptPath();
+    assert.equal(path.dirname(scriptPath), os.tmpdir());
+    assert.match(path.basename(scriptPath), /^[0-9a-f-]{36}\.ps1$/u);
   });
 });
 

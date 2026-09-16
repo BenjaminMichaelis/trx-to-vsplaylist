@@ -38,6 +38,7 @@ import require$$5$3, { StringDecoder } from 'string_decoder';
 import * as child from 'child_process';
 import { setTimeout as setTimeout$1 } from 'timers';
 import * as stream from 'stream';
+import { randomUUID } from 'node:crypto';
 
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -32829,6 +32830,9 @@ function normalizeDotnetChannel(channel) {
     }
     return trimmed.replace(/\.x$/iu, '');
 }
+function getDotnetInstallScriptPath(runnerTemp = process.env.RUNNER_TEMP) {
+    return path__default.join(runnerTemp ?? os__default.tmpdir(), `${randomUUID()}.ps1`);
+}
 async function configureDotnetEnvironment(installDir) {
     const dotnetRoot = installDir ?? process.env.DOTNET_ROOT ?? (await getDotnetRoot());
     exportVariable('DOTNET_ROOT', dotnetRoot);
@@ -32864,10 +32868,11 @@ async function ensureDotnet() {
     else {
         info('.NET SDK not found, installing...');
     }
-    const installDir = path__default.join(process.env.RUNNER_TEMP, 'dotnet');
+    const tempRoot = process.env.RUNNER_TEMP ?? os__default.tmpdir();
+    const installDir = path__default.join(tempRoot, 'dotnet');
     if (os__default.platform() === 'win32') {
         // Download and run dotnet-install.ps1
-        const scriptPath = await downloadTool('https://dot.net/v1/dotnet-install.ps1');
+        const scriptPath = await downloadTool('https://dot.net/v1/dotnet-install.ps1', getDotnetInstallScriptPath(tempRoot));
         const pwsh = (await which('pwsh', false)) || (await which('powershell', true));
         await exec(pwsh, [
             '-NoProfile',

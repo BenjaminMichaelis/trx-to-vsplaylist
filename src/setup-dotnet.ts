@@ -2,6 +2,7 @@ import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import * as tc from '@actions/tool-cache';
 import * as io from '@actions/io';
+import { randomUUID } from 'node:crypto';
 import path from 'path';
 import os from 'os';
 import { chmodSync, realpathSync } from 'fs';
@@ -27,6 +28,12 @@ export function normalizeDotnetChannel(channel: string): string {
     return trimmed.replace(/\.x$/iu, '.0');
   }
   return trimmed.replace(/\.x$/iu, '');
+}
+
+export function getDotnetInstallScriptPath(
+  runnerTemp = process.env.RUNNER_TEMP
+): string {
+  return path.join(runnerTemp ?? os.tmpdir(), `${randomUUID()}.ps1`);
 }
 
 async function configureDotnetEnvironment(installDir?: string): Promise<void> {
@@ -74,12 +81,14 @@ export async function ensureDotnet(): Promise<void> {
     core.info('.NET SDK not found, installing...');
   }
 
-  const installDir = path.join(process.env.RUNNER_TEMP!, 'dotnet');
+  const tempRoot = process.env.RUNNER_TEMP ?? os.tmpdir();
+  const installDir = path.join(tempRoot, 'dotnet');
 
   if (os.platform() === 'win32') {
     // Download and run dotnet-install.ps1
     const scriptPath = await tc.downloadTool(
-      'https://dot.net/v1/dotnet-install.ps1'
+      'https://dot.net/v1/dotnet-install.ps1',
+      getDotnetInstallScriptPath(tempRoot)
     );
     const pwsh =
       (await io.which('pwsh', false)) || (await io.which('powershell', true));
