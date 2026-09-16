@@ -33200,6 +33200,9 @@ function normalizeDotnetChannel(channel) {
     }
     return trimmed.replace(/\.x$/iu, '');
 }
+function getDotnetInstallScriptPath(runnerTemp = process.env.RUNNER_TEMP) {
+    return path__default.join(runnerTemp ?? os__default.tmpdir(), 'dotnet-install.ps1');
+}
 async function configureDotnetEnvironment(installDir) {
     const dotnetRoot = installDir ?? process.env.DOTNET_ROOT ?? (await getDotnetRoot());
     exportVariable('DOTNET_ROOT', dotnetRoot);
@@ -33238,7 +33241,7 @@ async function ensureDotnet() {
     const installDir = path__default.join(process.env.RUNNER_TEMP, 'dotnet');
     if (os__default.platform() === 'win32') {
         // Download and run dotnet-install.ps1
-        const scriptPath = await downloadTool('https://dot.net/v1/dotnet-install.ps1');
+        const scriptPath = await downloadTool('https://dot.net/v1/dotnet-install.ps1', getDotnetInstallScriptPath());
         const pwsh = (await which('pwsh', false)) || (await which('powershell', true));
         await exec(pwsh, [
             '-NoProfile',

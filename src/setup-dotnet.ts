@@ -29,6 +29,12 @@ export function normalizeDotnetChannel(channel: string): string {
   return trimmed.replace(/\.x$/iu, '');
 }
 
+export function getDotnetInstallScriptPath(
+  runnerTemp = process.env.RUNNER_TEMP
+): string {
+  return path.join(runnerTemp ?? os.tmpdir(), 'dotnet-install.ps1');
+}
+
 async function configureDotnetEnvironment(installDir?: string): Promise<void> {
   const dotnetRoot =
     installDir ?? process.env.DOTNET_ROOT ?? (await getDotnetRoot());
@@ -79,7 +85,8 @@ export async function ensureDotnet(): Promise<void> {
   if (os.platform() === 'win32') {
     // Download and run dotnet-install.ps1
     const scriptPath = await tc.downloadTool(
-      'https://dot.net/v1/dotnet-install.ps1'
+      'https://dot.net/v1/dotnet-install.ps1',
+      getDotnetInstallScriptPath()
     );
     const pwsh =
       (await io.which('pwsh', false)) || (await io.which('powershell', true));

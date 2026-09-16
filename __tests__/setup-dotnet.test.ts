@@ -1,6 +1,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import os from 'os';
+import path from 'path';
 import {
+  getDotnetInstallScriptPath,
   isInstalledVersionCompatible,
   normalizeDotnetChannel,
 } from '../src/setup-dotnet.js';
@@ -20,6 +23,22 @@ describe('normalizeDotnetChannel', () => {
 
   it('trims whitespace while normalizing', () => {
     assert.equal(normalizeDotnetChannel(' 10.0.x '), '10.0');
+  });
+});
+
+describe('getDotnetInstallScriptPath', () => {
+  it('uses the runner temp directory and preserves the PowerShell extension', () => {
+    assert.equal(
+      getDotnetInstallScriptPath(path.join('runner-temp', 'work')),
+      path.join('runner-temp', 'work', 'dotnet-install.ps1')
+    );
+  });
+
+  it('falls back to the operating system temp directory', () => {
+    assert.equal(
+      getDotnetInstallScriptPath(undefined),
+      path.join(os.tmpdir(), 'dotnet-install.ps1')
+    );
   });
 });
 
