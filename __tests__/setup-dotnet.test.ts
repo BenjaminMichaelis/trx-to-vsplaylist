@@ -34,9 +34,19 @@ describe('getDotnetInstallScriptPath', () => {
     );
   });
 
-  it('falls back to the operating system temp directory', () => {
+  it('falls back to the operating system temp directory', (t) => {
+    const runnerTemp = process.env.RUNNER_TEMP;
+    delete process.env.RUNNER_TEMP;
+    t.after(() => {
+      if (runnerTemp === undefined) {
+        delete process.env.RUNNER_TEMP;
+      } else {
+        process.env.RUNNER_TEMP = runnerTemp;
+      }
+    });
+
     assert.equal(
-      getDotnetInstallScriptPath(undefined),
+      getDotnetInstallScriptPath(),
       path.join(os.tmpdir(), 'dotnet-install.ps1')
     );
   });
