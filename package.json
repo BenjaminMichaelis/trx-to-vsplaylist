@@ -16,7 +16,7 @@
     "all": "npm run lint && npm run typecheck && npm run test && npm run package"
   },
   "dependencies": {
-    "@actions/artifact": "^6.2.1",
+    "@actions/artifact": "^6.3.1",
     "@actions/core": "^3.0.1",
     "@actions/exec": "^3.0.0",
     "@actions/glob": "^0.7.0",
