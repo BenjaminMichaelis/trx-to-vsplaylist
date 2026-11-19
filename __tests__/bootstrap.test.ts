@@ -84,7 +84,13 @@ describe('SDK bootstrap', () => {
   });
 
   afterEach(() => {
-    process.env = originalEnvironment;
+    for (const name of ['RUNNER_TEMP', 'DOTNET_ROOT']) {
+      if (originalEnvironment[name] === undefined) {
+        delete process.env[name];
+      } else {
+        process.env[name] = originalEnvironment[name];
+      }
+    }
     rmSync(tempDir, { recursive: true, force: true });
   });
 

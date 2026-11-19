@@ -15,7 +15,9 @@ import path from 'node:path';
 const scenario = process.env.BOOTSTRAP_SCENARIO;
 assert.ok(['install', 'reuse'].includes(scenario));
 const executable = process.platform === 'win32' ? 'dotnet.exe' : 'dotnet';
-const tool = process.platform === 'win32' ? 'trx-to-vsplaylist.exe' : 'trx-to-vsplaylist';
+const toolNames = process.platform === 'win32'
+  ? ['trx-to-vsplaylist.exe', 'trx-to-vsplaylist.cmd', 'trx-to-vsplaylist.bat']
+  : ['trx-to-vsplaylist'];
 const installRoot = path.join(process.env.RUNNER_TEMP, 'dotnet');
 const toolPath = path.join(process.env.RUNNER_TEMP, '.dotnet-tools-trx-to-vsplaylist');
 
@@ -37,7 +39,7 @@ function verifyPlaylist(file) {
 
 switch (process.argv[2]) {
   case 'prepare': {
-    assert.ok(!findOnPath(tool), 'the converter must not be preinstalled');
+    assert.ok(!toolNames.some(findOnPath), 'the converter must not be preinstalled');
     assert.ok(!existsSync(installRoot), 'the SDK install destination must be empty');
     assert.ok(!existsSync(toolPath), 'the tool install destination must be empty');
     const host = findOnPath(executable);
@@ -71,7 +73,10 @@ switch (process.argv[2]) {
     assert.equal(process.env.DOTNET_ROOT, expectedRoot);
     assert.equal(process.env[`DOTNET_ROOT_${os.arch().toUpperCase()}`], expectedRoot);
     assert.equal(existsSync(installRoot), scenario === 'install');
-    assert.ok(existsSync(path.join(toolPath, tool)), 'the action must install its own converter');
+    assert.ok(
+      toolNames.some(name => existsSync(path.join(toolPath, name))),
+      'the action must install its own converter'
+    );
     assert.match(
       runDotnet(path.join(expectedRoot, executable), '--list-sdks'),
       /^10\.0\.\d+ /mu
