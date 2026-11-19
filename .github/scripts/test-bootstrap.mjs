@@ -71,7 +71,13 @@ switch (process.argv[2]) {
   case 'verify': {
     const expectedRoot = process.env.BOOTSTRAP_EXPECTED_ROOT;
     assert.equal(process.env.DOTNET_ROOT, expectedRoot);
-    assert.equal(process.env[`DOTNET_ROOT_${os.arch().toUpperCase()}`], expectedRoot);
+    const architectureRoot = `DOTNET_ROOT_${os.arch().toUpperCase()}`;
+    if (
+      process.env[architectureRoot] !== undefined ||
+      (process.platform === 'darwin' && os.arch() === 'arm64')
+    ) {
+      assert.equal(process.env[architectureRoot], expectedRoot);
+    }
     assert.equal(existsSync(installRoot), scenario === 'install');
     assert.ok(
       toolNames.some(name => existsSync(path.join(toolPath, name))),

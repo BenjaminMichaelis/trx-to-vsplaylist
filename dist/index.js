@@ -33554,7 +33554,12 @@ function getDotnetInstallScriptPath(runnerTemp = process.env.RUNNER_TEMP) {
 }
 function configureDotnetEnvironment(dotnetRoot) {
     exportVariable('DOTNET_ROOT', dotnetRoot);
-    exportVariable(`DOTNET_ROOT_${os__default.arch().toUpperCase()}`, dotnetRoot);
+    const architectureRoot = `DOTNET_ROOT_${os__default.arch().toUpperCase()}`;
+    // A new override would take precedence over a later setup-dotnet step's DOTNET_ROOT.
+    if (process.env[architectureRoot] !== undefined ||
+        (os__default.platform() === 'darwin' && os__default.arch() === 'arm64')) {
+        exportVariable(architectureRoot, dotnetRoot);
+    }
 }
 async function ensureDotnet() {
     const channel = getInput('dotnet-version') || '10.0';

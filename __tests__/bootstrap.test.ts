@@ -84,7 +84,7 @@ describe('SDK bootstrap', () => {
   });
 
   afterEach(() => {
-    for (const name of ['RUNNER_TEMP', 'DOTNET_ROOT']) {
+    for (const name of ['RUNNER_TEMP', 'DOTNET_ROOT', `DOTNET_ROOT_${os.arch().toUpperCase()}`]) {
       if (originalEnvironment[name] === undefined) {
         delete process.env[name];
       } else {
@@ -101,11 +101,25 @@ describe('SDK bootstrap', () => {
       exportedVariables.get('DOTNET_ROOT'),
       path.join(tempDir, 'dotnet')
     );
-    assert.equal(
-      exportedVariables.get(`DOTNET_ROOT_${os.arch().toUpperCase()}`),
-      path.join(tempDir, 'dotnet')
-    );
     assert.ok(messages.some(message => message.includes('SDK installed')));
+  });
+
+  it('updates an existing architecture-specific runtime root', async () => {
+    const architectureRoot = `DOTNET_ROOT_${os.arch().toUpperCase()}`;
+    process.env[architectureRoot] = path.join(tempDir, 'stale-architecture-root');
+    await ensureDotnet();
+    assert.equal(exportedVariables.get(architectureRoot), path.join(tempDir, 'dotnet'));
+  });
+
+  it('does not introduce an unnecessary architecture-specific runtime override', async () => {
+    const architectureRoot = `DOTNET_ROOT_${os.arch().toUpperCase()}`;
+    delete process.env[architectureRoot];
+    sdkOutput = '10.0.100 [sdk]\n';
+    await ensureDotnet();
+    assert.equal(
+      exportedVariables.has(architectureRoot),
+      os.platform() === 'darwin' && os.arch() === 'arm64'
+    );
   });
 
   it('reuses an installed matching SDK even when a newer SDK is selected', async () => {

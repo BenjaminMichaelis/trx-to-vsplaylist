@@ -38,7 +38,14 @@ export function getDotnetInstallScriptPath(
 
 function configureDotnetEnvironment(dotnetRoot: string): void {
   core.exportVariable('DOTNET_ROOT', dotnetRoot);
-  core.exportVariable(`DOTNET_ROOT_${os.arch().toUpperCase()}`, dotnetRoot);
+  const architectureRoot = `DOTNET_ROOT_${os.arch().toUpperCase()}`;
+  // A new override would take precedence over a later setup-dotnet step's DOTNET_ROOT.
+  if (
+    process.env[architectureRoot] !== undefined ||
+    (os.platform() === 'darwin' && os.arch() === 'arm64')
+  ) {
+    core.exportVariable(architectureRoot, dotnetRoot);
+  }
 }
 
 export async function ensureDotnet(): Promise<void> {
