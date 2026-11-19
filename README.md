@@ -102,6 +102,21 @@ jobs:
 | `tool-version` | Version of the `trx-to-vsplaylist` .NET tool to install before conversion. | No | `2.0.0` |
 | `dotnet-version` | .NET SDK channel to install (e.g. `10.0`). Installation is skipped when a compatible SDK matching the requested channel is already available on PATH; otherwise the requested SDK channel is installed automatically. | No | `10.0` |
 
+### Automatic setup
+
+The action checks all stable SDKs visible to the `dotnet` host on PATH, not just
+the SDK selected by `dotnet --version`. A matching SDK is reused even when a
+newer SDK is selected; the action does not change your project's SDK selection.
+If no matching SDK is available (or `dotnet` is missing), the requested channel
+is installed in the runner's temporary directory. An SDK is needed for
+`dotnet tool install`, even when the installed converter is native AOT.
+
+Setup normally runs in the action's `pre` hook, before regular job steps.
+Local actions (`uses: ./`) do not run `pre`, so the main action also installs
+prerequisites when the converter is not already on PATH. You do not need to
+install the converter manually. SDK discovery and installation failures fail
+the action rather than silently continuing.
+
 ## Outputs
 
 | Output | Description |

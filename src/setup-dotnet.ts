@@ -36,46 +36,40 @@ export function getDotnetInstallScriptPath(
   return path.join(runnerTemp ?? os.tmpdir(), `${randomUUID()}.ps1`);
 }
 
-async function configureDotnetEnvironment(installDir?: string): Promise<void> {
-  const dotnetRoot =
-    installDir ?? process.env.DOTNET_ROOT ?? (await getDotnetRoot());
-
+function configureDotnetEnvironment(dotnetRoot: string): void {
   core.exportVariable('DOTNET_ROOT', dotnetRoot);
-  process.env.DOTNET_ROOT = dotnetRoot;
-
-  // On macOS arm64, also set DOTNET_ROOT_ARM64 so apphost-based tools can find runtime
-  if (os.platform() === 'darwin' && os.arch() === 'arm64') {
-    core.exportVariable('DOTNET_ROOT_ARM64', dotnetRoot);
-    process.env.DOTNET_ROOT_ARM64 = dotnetRoot;
-  }
-}
-
-async function getDotnetRoot(): Promise<string> {
-  const dotnetPath = await io.which('dotnet', true);
-  const realDotnetPath = realpathSync(dotnetPath);
-  return path.dirname(realDotnetPath);
+  core.exportVariable(`DOTNET_ROOT_${os.arch().toUpperCase()}`, dotnetRoot);
 }
 
 export async function ensureDotnet(): Promise<void> {
   const channel = core.getInput('dotnet-version') || '10.0';
   const installChannel = normalizeDotnetChannel(channel);
 
-  // Check if dotnet is already on PATH and matches the requested channel
-  const dotnetVersion = await exec.getExecOutput('dotnet', ['--version'], {
-    silent: true,
-    ignoreReturnCode: true,
-  });
-  if (dotnetVersion.exitCode === 0) {
-    const installedVersion = dotnetVersion.stdout.trim();
-    if (isInstalledVersionCompatible(installedVersion, channel)) {
-      await configureDotnetEnvironment();
+  const dotnetPath = await io.which('dotnet', false);
+  if (dotnetPath) {
+    const installedSdks = await exec.getExecOutput(
+      `"${dotnetPath}"`,
+      ['--list-sdks'],
+      { silent: true, ignoreReturnCode: true }
+    );
+    if (installedSdks.exitCode !== 0) {
+      throw new Error(
+        `Unable to discover installed .NET SDKs: ${installedSdks.stderr || installedSdks.stdout}`
+      );
+    }
+    const installedVersion = installedSdks.stdout
+      .split(/\r?\n/u)
+      .map(line => /^(\d+\.\d+\.\d+)\s+\[/u.exec(line)?.[1])
+      .find(version => version && isInstalledVersionCompatible(version, channel));
+    if (installedVersion) {
+      configureDotnetEnvironment(path.dirname(realpathSync(dotnetPath)));
       core.info(
         `.NET SDK already available (${installedVersion}) for requested channel ${channel}`
       );
       return;
     }
     core.info(
-      `.NET SDK ${installedVersion} does not match requested channel ${channel}, installing...`
+      `No installed .NET SDK matches requested channel ${channel}, installing...`
     );
   } else {
     core.info('.NET SDK not found, installing...');
@@ -92,7 +86,7 @@ export async function ensureDotnet(): Promise<void> {
     );
     const pwsh =
       (await io.which('pwsh', false)) || (await io.which('powershell', true));
-    await exec.exec(pwsh, [
+    await exec.exec(`"${pwsh}"`, [
       '-NoProfile',
       '-NonInteractive',
       '-ExecutionPolicy',
@@ -110,7 +104,7 @@ export async function ensureDotnet(): Promise<void> {
       'https://dot.net/v1/dotnet-install.sh'
     );
     chmodSync(scriptPath, '755');
-    await exec.exec(scriptPath, [
+    await exec.exec(`"${scriptPath}"`, [
       '--channel',
       installChannel,
       '--install-dir',
@@ -119,7 +113,7 @@ export async function ensureDotnet(): Promise<void> {
   }
 
   core.addPath(installDir);
-  await configureDotnetEnvironment(installDir);
+  configureDotnetEnvironment(installDir);
 
   core.info(`.NET SDK installed to ${installDir}`);
 }
