@@ -30372,7 +30372,7 @@ function globToRegex(absForwardPattern) {
     const convertPart = (part) => {
         let regex = '';
         for (let i = 0; i < part.length; i++) {
-            const char = part[i];
+            const char = part.charAt(i);
             if (char === '*') {
                 regex += '[^/]*';
             }
@@ -30406,9 +30406,14 @@ function globToRegex(absForwardPattern) {
     const escapedParts = absForwardPattern.split('**').map(convertPart);
     // Re-join: when both sides carry a slash around **, use (?:/.*)? so zero
     // intermediate directories are allowed (e.g. **/foo matches foo at root).
-    let regexBody = escapedParts[0];
-    for (let i = 1; i < escapedParts.length; i++) {
-        const next = escapedParts[i];
+    let regexBody = '';
+    let hasFirstPart = false;
+    for (const next of escapedParts) {
+        if (!hasFirstPart) {
+            regexBody = next;
+            hasFirstPart = true;
+            continue;
+        }
         if (regexBody.endsWith('/') && next.startsWith('/')) {
             regexBody = regexBody.slice(0, -1) + '(?:/.*)?' + next;
         }
@@ -30484,12 +30489,13 @@ async function convert() {
     const separate = getBooleanInput('separate');
     // 1. Resolve TRX files
     const trxFiles = await resolveTrxFiles(trxPattern);
-    if (trxFiles.length === 0) {
+    const firstTrxFile = trxFiles[0];
+    if (firstTrxFile === undefined) {
         throw new Error(`No TRX files found matching pattern: ${trxPattern}`);
     }
     info(`Found ${trxFiles.length} TRX file(s): ${trxFiles.join(', ')}`);
     // 2. Determine artifact directory
-    const artifactDir = outputDirectory || path__default.dirname(trxFiles[0]);
+    const artifactDir = outputDirectory || path__default.dirname(firstTrxFile);
     if (outputDirectory)
         fs__default.mkdirSync(artifactDir, { recursive: true });
     // 3. Build CLI args
@@ -30500,7 +30506,7 @@ async function convert() {
         info(`Using separate mode: creating individual playlists in ${artifactDir}`);
     }
     else {
-        const basename = path__default.basename(trxFiles[0], '.trx');
+        const basename = path__default.basename(firstTrxFile, '.trx');
         outputFile =
             trxFiles.length > 1
                 ? path__default.join(artifactDir, 'merged.playlist')
