@@ -26,7 +26,7 @@ export function globToRegex(absForwardPattern: string): RegExp {
   const convertPart = (part: string): string => {
     let regex = '';
     for (let i = 0; i < part.length; i++) {
-      const char = part[i];
+      const char = part.charAt(i);
       if (char === '*') {
         regex += '[^/]*';
       } else if (char === '?') {
@@ -57,9 +57,14 @@ export function globToRegex(absForwardPattern: string): RegExp {
   const escapedParts = absForwardPattern.split('**').map(convertPart);
   // Re-join: when both sides carry a slash around **, use (?:/.*)? so zero
   // intermediate directories are allowed (e.g. **/foo matches foo at root).
-  let regexBody = escapedParts[0];
-  for (let i = 1; i < escapedParts.length; i++) {
-    const next = escapedParts[i];
+  let regexBody = '';
+  let hasFirstPart = false;
+  for (const next of escapedParts) {
+    if (!hasFirstPart) {
+      regexBody = next;
+      hasFirstPart = true;
+      continue;
+    }
     if (regexBody.endsWith('/') && next.startsWith('/')) {
       regexBody = regexBody.slice(0, -1) + '(?:/.*)?' + next;
     } else {
@@ -148,13 +153,14 @@ export async function convert(): Promise<{ artifactDir: string; freshPlaylists: 
 
   // 1. Resolve TRX files
   const trxFiles = await resolveTrxFiles(trxPattern);
-  if (trxFiles.length === 0) {
+  const firstTrxFile = trxFiles[0];
+  if (firstTrxFile === undefined) {
     throw new Error(`No TRX files found matching pattern: ${trxPattern}`);
   }
   core.info(`Found ${trxFiles.length} TRX file(s): ${trxFiles.join(', ')}`);
 
   // 2. Determine artifact directory
-  const artifactDir = outputDirectory || path.dirname(trxFiles[0]);
+  const artifactDir = outputDirectory || path.dirname(firstTrxFile);
   if (outputDirectory) fs.mkdirSync(artifactDir, { recursive: true });
 
   // 3. Build CLI args
@@ -167,7 +173,7 @@ export async function convert(): Promise<{ artifactDir: string; freshPlaylists: 
       `Using separate mode: creating individual playlists in ${artifactDir}`
     );
   } else {
-    const basename = path.basename(trxFiles[0], '.trx');
+    const basename = path.basename(firstTrxFile, '.trx');
     outputFile =
       trxFiles.length > 1
         ? path.join(artifactDir, 'merged.playlist')
