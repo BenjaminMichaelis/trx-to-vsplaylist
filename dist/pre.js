@@ -2,7 +2,7 @@ import * as os from 'os';
 import os__default from 'os';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
-import { promises, chmodSync, realpathSync } from 'fs';
+import { promises, realpathSync, chmodSync } from 'fs';
 import * as path from 'path';
 import path__default from 'path';
 import * as http from 'http';
@@ -33182,37 +33182,34 @@ function normalizeDotnetChannel(channel) {
 function getDotnetInstallScriptPath(runnerTemp = process.env.RUNNER_TEMP) {
     return path__default.join(runnerTemp ?? os__default.tmpdir(), `${randomUUID()}.ps1`);
 }
-async function configureDotnetEnvironment(installDir) {
-    const dotnetRoot = installDir ?? process.env.DOTNET_ROOT ?? (await getDotnetRoot());
+function configureDotnetEnvironment(dotnetRoot) {
     exportVariable('DOTNET_ROOT', dotnetRoot);
-    process.env.DOTNET_ROOT = dotnetRoot;
-    // On macOS arm64, also set DOTNET_ROOT_ARM64 so apphost-based tools can find runtime
-    if (os__default.platform() === 'darwin' && os__default.arch() === 'arm64') {
-        exportVariable('DOTNET_ROOT_ARM64', dotnetRoot);
-        process.env.DOTNET_ROOT_ARM64 = dotnetRoot;
+    const architectureRoot = `DOTNET_ROOT_${os__default.arch().toUpperCase()}`;
+    // A new override would take precedence over a later setup-dotnet step's DOTNET_ROOT.
+    if (process.env[architectureRoot] !== undefined ||
+        (os__default.platform() === 'darwin' && os__default.arch() === 'arm64')) {
+        exportVariable(architectureRoot, dotnetRoot);
     }
-}
-async function getDotnetRoot() {
-    const dotnetPath = await which('dotnet', true);
-    const realDotnetPath = realpathSync(dotnetPath);
-    return path__default.dirname(realDotnetPath);
 }
 async function ensureDotnet() {
     const channel = getInput('dotnet-version') || '10.0';
     const installChannel = normalizeDotnetChannel(channel);
-    // Check if dotnet is already on PATH and matches the requested channel
-    const dotnetVersion = await getExecOutput('dotnet', ['--version'], {
-        silent: true,
-        ignoreReturnCode: true,
-    });
-    if (dotnetVersion.exitCode === 0) {
-        const installedVersion = dotnetVersion.stdout.trim();
-        if (isInstalledVersionCompatible(installedVersion, channel)) {
-            await configureDotnetEnvironment();
+    const dotnetPath = await which('dotnet', false);
+    if (dotnetPath) {
+        const installedSdks = await getExecOutput(`"${dotnetPath}"`, ['--list-sdks'], { silent: true, ignoreReturnCode: true });
+        if (installedSdks.exitCode !== 0) {
+            throw new Error(`Unable to discover installed .NET SDKs: ${installedSdks.stderr || installedSdks.stdout}`);
+        }
+        const installedVersion = installedSdks.stdout
+            .split(/\r?\n/u)
+            .map(line => /^(\d+\.\d+\.\d+)\s+\[/u.exec(line)?.[1])
+            .find(version => version && isInstalledVersionCompatible(version, channel));
+        if (installedVersion) {
+            configureDotnetEnvironment(path__default.dirname(realpathSync(dotnetPath)));
             info(`.NET SDK already available (${installedVersion}) for requested channel ${channel}`);
             return;
         }
-        info(`.NET SDK ${installedVersion} does not match requested channel ${channel}, installing...`);
+        info(`No installed .NET SDK matches requested channel ${channel}, installing...`);
     }
     else {
         info('.NET SDK not found, installing...');
@@ -33223,7 +33220,7 @@ async function ensureDotnet() {
         // Download and run dotnet-install.ps1
         const scriptPath = await downloadTool('https://dot.net/v1/dotnet-install.ps1', getDotnetInstallScriptPath(tempRoot));
         const pwsh = (await which('pwsh', false)) || (await which('powershell', true));
-        await exec(pwsh, [
+        await exec(`"${pwsh}"`, [
             '-NoProfile',
             '-NonInteractive',
             '-ExecutionPolicy',
@@ -33240,7 +33237,7 @@ async function ensureDotnet() {
         // Download and run dotnet-install.sh
         const scriptPath = await downloadTool('https://dot.net/v1/dotnet-install.sh');
         chmodSync(scriptPath, '755');
-        await exec(scriptPath, [
+        await exec(`"${scriptPath}"`, [
             '--channel',
             installChannel,
             '--install-dir',
@@ -33248,7 +33245,7 @@ async function ensureDotnet() {
         ]);
     }
     addPath(installDir);
-    await configureDotnetEnvironment(installDir);
+    configureDotnetEnvironment(installDir);
     info(`.NET SDK installed to ${installDir}`);
 }
 
