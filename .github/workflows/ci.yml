@@ -113,7 +113,7 @@ jobs:
         uses: ./
         with:
           trx-file-path: './TestResults/comprehensive.trx'
-          artifact-name: test-results-${{ matrix.os }}-${{ matrix.bootstrap }}
+          artifact-name: test-results-${{ matrix.os }}-${{ matrix.bootstrap }}-${{ github.run_attempt }}
 
       - name: Verify Action Outputs
         env:
@@ -124,7 +124,7 @@ jobs:
       - name: Download uploaded playlist
         uses: actions/download-artifact@v8
         with:
-          name: test-results-${{ matrix.os }}-${{ matrix.bootstrap }}
+          name: test-results-${{ matrix.os }}-${{ matrix.bootstrap }}-${{ github.run_attempt }}
           path: downloaded-playlists
 
       - name: Verify uploaded playlist contents
@@ -134,7 +134,7 @@ jobs:
         uses: ./
         with:
           trx-file-path: './TestResults/comprehensive.trx'
-          artifact-name: test-results-${{ matrix.os }}-${{ matrix.bootstrap }}-reuse-tool
+          artifact-name: test-results-${{ matrix.os }}-${{ matrix.bootstrap }}-${{ github.run_attempt }}-reuse-tool
 
       - name: Test bundled cleanup
         env:
